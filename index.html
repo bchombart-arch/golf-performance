@@ -88,6 +88,9 @@
   .critrow .rowscroll>*{min-height:42px}
   html.xl .critrow .rowscroll>*{min-height:46px}
   html.xl .critrow{grid-template-columns:86px minmax(0,1fr)}
+  /* libellés courts : la colonne ne garde que la largeur du mot */
+  .critrow.sh{grid-template-columns:32px minmax(0,1fr)}
+  html.xl .critrow.sh{grid-template-columns:36px minmax(0,1fr)}
   html.xl .critrow>.k{font-size:.42em}
   /* molette : une règle graduée qui défile sous le pouce, le trait central marque la valeur */
   .wheel{position:relative;margin:2px 0 12px;border:2px solid var(--line);border-radius:14px;
@@ -1677,9 +1680,9 @@ function paintStats(){
       return '<button type="button" class="btn small" id="statsSector'+i+'">'+label+'</button>';
     }).join("")+'</div></div>'+
     '<div class="card"><p class="label">Période</p>'+
-    '<div class="critrow"><span class="k">Du</span>'+
+    '<div class="critrow sh"><span class="k">Du</span>'+
       '<input class="txt dateline" type="date" id="statsFrom" value="'+depart+'"></div>'+
-    '<div class="critrow"><span class="k">Au</span>'+
+    '<div class="critrow sh"><span class="k">Au</span>'+
       '<input class="txt dateline" type="date" id="statsTo" value="'+today+'"></div>'+
     '</div>'+
     '<div id="statsProgress"></div>';
