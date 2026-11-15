@@ -167,10 +167,16 @@
   .chips.one .chip{flex:1 1 0;min-width:0;padding:0 6px;white-space:normal;line-height:1.1;font-size:.92em;
     display:flex;align-items:center;justify-content:center;text-align:center}
   .pad{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
-  .pad .m{min-height:var(--tap);border-radius:16px;border:2px solid var(--line);background:var(--card);font-weight:800;font-size:.92em;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px}
+  .pad .m{min-height:54px;border-radius:14px;border:2px solid var(--line);background:var(--card);
+    font-weight:800;font-size:.92em;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:2px;padding:4px}
+  html.xl .pad .m,html.xl .pad .gr{min-height:62px}
+  .pad .ar{font-size:1.7em;line-height:1}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   /* classe propre au pavé : « in » entrait en conflit avec le panneau .sheet .in */
-  .pad .gr{grid-column:2;background:var(--ok);border-color:var(--ok);color:#fff;font-size:1.1em;
-    min-height:var(--tap);border-radius:16px;border-width:2px;border-style:solid;
+  .pad .gr{grid-column:2;background:var(--ok);border-color:var(--ok);color:#fff;font-size:.8em;
+    letter-spacing:.02em;white-space:nowrap;
+    min-height:54px;border-radius:14px;border-width:2px;border-style:solid;
     width:auto;max-width:none;max-height:none;padding:6px;margin:0;overflow:visible;
     display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800}
   .opt{border-top:2px dashed var(--line);margin-top:14px;padding-top:12px}
@@ -494,6 +500,12 @@ function landLab(c){ for(var i=0;i<LAND.length;i++) if(LAND[i][0]===c) return LA
 var DIRS=[["LG","Long-Gauche"],["LC","Long"],["LD","Long-Droite"],
           ["HG","Hauteur gauche"],["IN","RENTRÉ"],["HD","Hauteur droite"],
           ["CG","Court-Gauche"],["CC","Court"],["CD","Court-Droite"]];
+/* pavés : une flèche vaut mieux qu'un libellé coupé en quatre */
+var ARROW={LG:"↖",LC:"↑",LD:"↗",HG:"←",HD:"→",MG:"←",MD:"→",CG:"↙",CC:"↓",CD:"↘"};
+function padFace(code,label){
+  return ARROW[code] ? '<span class="ar" aria-hidden="true">'+ARROW[code]+'</span>'+
+    '<span class="sr">'+label.replace("-"," ")+'</span>' : label;
+}
 var BREAKS=["G→D","Droit","D→G"], SLOPES=["Montée","Plat","Descente"];
 var REASONS=["Vitesse","Sous-lecture","Sur-lecture","Ligne de départ","Visée"]; // ancien format, conservé pour les putts déjà saisis
 var AMOUNTS=["Nulle","Faible","Moyenne","Forte"];                 // taille de cassure, comme Straight / Shallow / Medium / Large
@@ -1093,7 +1105,7 @@ function formPutt(ins,prefill){
     DIRS.forEach(function(d){
       var b=document.createElement("button");
       b.className=d[0]==="IN"?"gr m":"m";
-      b.innerHTML=d[0]==="IN"?"RENTRÉ":d[1].replace("-","<br>");
+      b.innerHTML=d[0]==="IN"?"RENTRÉ":padFace(d[0],d[1]);
       b.onclick=function(){ st.res=d[0]; if(d[0]==="IN"){ st.rest=0; renderOpt(); } else renderRest(); };
       p.appendChild(b);
     });
@@ -1202,7 +1214,7 @@ function askApproachResult(idx){
         LAND.forEach(function(d){
           var b=document.createElement("button");
           b.className=d[0]==="GREEN"?"gr m":"m";
-          b.innerHTML=d[1].replace("-","<br>");
+          b.innerHTML=d[0]==="GREEN"?"GREEN":padFace(d[0],d[1]);
           if(s.land===d[0]) b.style.boxShadow="inset 0 0 0 3px var(--blue)";
           b.onclick=function(){
             s.land=d[0];
