@@ -77,8 +77,8 @@
             mask-image:linear-gradient(90deg,#000 0,#000 94%,transparent 100%)}
   .rowscroll::-webkit-scrollbar{display:none}
   .rowscroll>*{flex:0 0 auto;width:auto;min-width:0;white-space:nowrap;
-    min-height:50px;padding:0 14px;font-size:.8em;border-radius:12px}
-  html.xl .rowscroll>*{min-height:56px;font-size:.72em}
+    min-height:48px;padding:0 13px;font-size:.72em;border-radius:12px}
+  html.xl .rowscroll>*{min-height:54px;font-size:.64em}
   .btn.danger{color:var(--red);border-color:#f3c9c9}
   .grid{display:grid;gap:10px}
   .g2{grid-template-columns:1fr 1fr}
@@ -952,21 +952,21 @@ function lieFromPrev(num,ins){
 }
 function formLong(ins,num,autoTee){
   var tee1=(num===1);   // départ : position de balle imposée, pas de choix à faire
-  var d0 = (num===1 && dist(cur)) ? dist(cur) : 150;
-  var st={lie:lieFromPrev(num,ins), dist:d0, intent:null,
+  var base = (num===1 && dist(cur)) ? dist(cur) : 100;   // point de départ des boutons − et +, pas une valeur inscrite
+  var st={lie:lieFromPrev(num,ins), dist:null, intent:null,
           club:(num===1 && par(cur)>3) ? "Dr" : null};
   var e=$("entry");
-  function sync(){ var v=parseInt(($("dv")||{}).value,10); if(v>0) st.dist=v; }
+  function sync(){ var el=$("dv"); if(!el) return; var v=parseInt(el.value,10); st.dist=(v>0)?v:null; }
   /* l'intention ne sert que là où il y a un vrai choix : long deuxième coup, ou sortie de difficulté */
   /* au départ, le club dit déjà l'intention : on ne demande rien de plus */
-  function needIntent(){ return !tee1 && (st.dist>180 || (par(cur)===5 && num===2) || st.lie==="Arbres"); }
+  function needIntent(){ return !tee1 && ((st.dist&&st.dist>180) || (par(cur)===5 && num===2) || st.lie==="Arbres"); }
   function toggleIntent(){ var b=$("intBox"); if(b) b.classList.toggle("hidden", !needIntent()); }
   function render(){
     e.innerHTML=(tee1?'':'<p class="label">1 · Position de balle</p><div class="rowscroll" id="lies"></div>')+
       '<p class="label">'+(tee1?'1':'2')+' · Club'+(tee1?' au départ':'')+(st.club?' — '+st.club:'')+'</p><div class="rowscroll" id="clubs"></div>'+
       '<p class="label">'+(tee1?'2 · Longueur du trou':'3 · Distance au drapeau')+'</p>'+
       '<div class="stepper"><button id="mm">−</button>'+
-        '<input class="bigin" id="dv" type="number" inputmode="numeric" step="1" min="1" value="'+st.dist+'">'+
+        '<input class="bigin" id="dv" type="number" inputmode="numeric" step="1" min="1" placeholder="—" value="'+(st.dist||"")+'">'+
         '<button id="pp">+</button></div>'+
       '<div class="bigu">mètres — valeur du télémètre</div>'+
       '<div id="intBox" class="'+(needIntent()?"":"hidden")+'" style="margin-bottom:14px">'+
@@ -991,7 +991,7 @@ function formLong(ins,num,autoTee){
     if($("quick")){
       var b2=document.createElement("button");
       b2.className="chip"; b2.style.flex="1 0 100%";
-      b2.textContent="Longueur du trou — "+dist(cur)+" m (départ "+tee().name+")";
+      b2.textContent="Longueur du trou — "+dist(cur)+" m";
       b2.onclick=function(){ st.dist=dist(cur); render(); };
       $("quick").appendChild(b2);
     }
@@ -1002,9 +1002,11 @@ function formLong(ins,num,autoTee){
       b.onclick=function(){ sync(); st.intent=(st.intent===x?null:x); render(); }; iw.appendChild(b);
     });
     $("dv").oninput=function(){ sync(); toggleIntent(); };
-    $("mm").onclick=function(){ sync(); st.dist=Math.max(1,st.dist-5); $("dv").value=st.dist; toggleIntent(); };
-    $("pp").onclick=function(){ sync(); st.dist+=5; $("dv").value=st.dist; toggleIntent(); };
-    $("ok").onclick=function(){ sync(); addShot({type:"long",lie:st.lie,dist:st.dist,club:st.club,
+    $("mm").onclick=function(){ sync(); st.dist=st.dist?Math.max(1,st.dist-5):base; $("dv").value=st.dist; toggleIntent(); };
+    $("pp").onclick=function(){ sync(); st.dist=st.dist?st.dist+5:base; $("dv").value=st.dist; toggleIntent(); };
+    $("ok").onclick=function(){ sync();
+      if(!st.dist){ toast("Distance manquante"); $("dv").focus(); return; }   // rien ne part sans distance
+      addShot({type:"long",lie:st.lie,dist:st.dist,club:st.club,
       intent:(needIntent()?st.intent:null)},ins); };
     if($("ca")) $("ca").onclick=function(){ draft=null; formOpen=false; paintEntry(); paintHoleBar(); };
   }
