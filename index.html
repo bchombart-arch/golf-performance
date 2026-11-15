@@ -1166,6 +1166,7 @@ function formPutt(ins,prefill){
         : '')+
       '<p class="muted" style="margin:12px 0 16px">Laisse vide si tu n’as pas observé. Le bilan donne le taux de renseignement.</p></div>'+
       '<button class="btn primary" id="ok">Enregistrer le putt</button>'+
+      (st.res!=="IN"?'<button class="btn" id="okTap" style="margin-top:10px">Enregistrer + tap in</button>':'')+
       '<button class="btn ghost" id="back">Revenir</button>';
     function set(id,list,get,fn){
       var w=$(id); if(!w) return;
@@ -1194,6 +1195,7 @@ function formPutt(ins,prefill){
                brk:st.brk,amt:st.amt,slope:st.slope,
                read:st.read,exec:st.exec.slice()},ins);
     };
+    if($("okTap")) $("okTap").onclick=tapIn;   // détail renseigné ET tap in enchaîné
     $("back").onclick=function(){ if(st.res==="IN") renderRes(); else renderRest(); };
   }
   formOpen=true; paintHoleBar();
