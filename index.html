@@ -151,7 +151,11 @@
     display:flex;align-items:center;justify-content:center;text-align:center}
   .pad{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
   .pad .m{min-height:var(--tap);border-radius:16px;border:2px solid var(--line);background:var(--card);font-weight:800;font-size:.92em;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px}
-  .pad .in{grid-column:2;background:var(--ok);border-color:var(--ok);color:#fff;font-size:1.3em;min-height:var(--tap)}
+  /* classe propre au pavé : « in » entrait en conflit avec le panneau .sheet .in */
+  .pad .gr{grid-column:2;background:var(--ok);border-color:var(--ok);color:#fff;font-size:1.1em;
+    min-height:var(--tap);border-radius:16px;border-width:2px;border-style:solid;
+    width:auto;max-width:none;max-height:none;padding:6px;margin:0;overflow:visible;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800}
   .opt{border-top:2px dashed var(--line);margin-top:14px;padding-top:12px}
   /* éditeur de parcours */
   .ed{width:100%;border-collapse:collapse}
@@ -1052,7 +1056,7 @@ function formPutt(ins,prefill){
     var p=$("pad");
     DIRS.forEach(function(d){
       var b=document.createElement("button");
-      b.className=d[0]==="IN"?"in":"m";
+      b.className=d[0]==="IN"?"gr m":"m";
       b.innerHTML=d[0]==="IN"?"RENTRÉ":d[1].replace("-","<br>");
       b.onclick=function(){ st.res=d[0]; if(d[0]==="IN"){ st.rest=0; renderOpt(); } else renderRest(); };
       p.appendChild(b);
@@ -1161,7 +1165,7 @@ function askApproachResult(idx){
         var w=$("ap");
         LAND.forEach(function(d){
           var b=document.createElement("button");
-          b.className=d[0]==="GREEN"?"in":"m";
+          b.className=d[0]==="GREEN"?"gr m":"m";
           b.innerHTML=d[1].replace("-","<br>");
           if(s.land===d[0]) b.style.boxShadow="inset 0 0 0 3px var(--blue)";
           b.onclick=function(){
