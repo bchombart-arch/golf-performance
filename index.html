@@ -1052,6 +1052,29 @@ function formLong(ins,num,autoTee){
   paintHoleBar();
   render(); if(!autoTee) e.scrollIntoView({behavior:"smooth",block:"start"});
 }
+function wheelBox(id){ return '<div class="wheel"><div class="track" id="'+id+'"></div><span class="mark"></span></div>'; }
+function fillWheel(id,vals,cur,ecrit,pick,defaut){
+  var q=$(id); if(!q) return; q.innerHTML="";
+  var sel=null,fallback=null;
+  vals.forEach(function(v){
+    var rond=(Math.abs(v-Math.round(v))<0.01);
+    var b=document.createElement("button");
+    b.className=(rond?"big":"")+(cur===v?" sel":"");
+    b.innerHTML='<span>'+(ecrit(v)||cur===v?fmt(v):"")+'</span><i></i>';
+    b.onclick=function(){ pick(v); };
+    if(cur===v) sel=b;
+    if(defaut!=null&&Math.abs(v-defaut)<0.01) fallback=b;
+    q.appendChild(b);
+  });
+  (sel||fallback||q.firstChild).scrollIntoView({block:"nearest",inline:"center"});
+}
+function restScale(){
+  var a=[],v;
+  for(v=0.1; v<=1.001; v+=0.1) a.push(Math.round(v*100)/100);
+  for(v=1.25;v<=3.001; v+=0.25) a.push(Math.round(v*100)/100);
+  for(v=3.5; v<=8.001; v+=0.5) a.push(Math.round(v*100)/100);
+  return a;
+}
 function puttScale(){
   var a=[],v;
   for(v=0.25; v<=6.001; v+=0.25) a.push(Math.round(v*100)/100);
@@ -1073,24 +1096,14 @@ function formPutt(ins,prefill){
         '<input class="bigin" id="dv" type="number" inputmode="decimal" step="0.25" min="0.25" placeholder="—" value="'+(st.dist||"")+'">'+
         '<button id="pp">+</button></div>'+
       '<div class="bigu">mètres</div>'+
-      '<div class="wheel"><div class="track" id="quick"></div><span class="mark"></span></div>'+
+      wheelBox("quick")+
       (prefill?'<p class="muted" style="text-align:center;margin:8px 0 0">Distance restante du putt précédent</p>':'')+
       '<button class="btn primary" id="next" style="margin-top:12px">Résultat du putt</button>'+
       '<button class="btn ghost" id="ca">Annuler</button>';
-    var q=$("quick"), vals=puttScale(), sel=null, deux=null;
-    vals.forEach(function(v){
-      var rond=(Math.abs(v-Math.round(v))<0.01);
-      var demi=(Math.abs(v*2-Math.round(v*2))<0.01);
-      var ecrit=rond||(demi&&v<=6);                 // chiffre tous les 50 cm jusqu'à 6 m, puis au mètre
-      var b=document.createElement("button");
-      b.className=(rond?"big":"")+(st.dist===v?" sel":"");
-      b.innerHTML='<span>'+(ecrit||st.dist===v?fmt(v):"")+'</span><i></i>';
-      b.onclick=function(){ st.dist=v; renderDist(); };
-      if(st.dist===v) sel=b;
-      if(Math.abs(v-2)<0.01) deux=b;
-      q.appendChild(b);
-    });
-    (sel||deux||q.firstChild).scrollIntoView({block:"nearest",inline:"center"});
+    fillWheel("quick",puttScale(),st.dist,
+      function(v){ var rond=Math.abs(v-Math.round(v))<0.01, demi=Math.abs(v*2-Math.round(v*2))<0.01;
+                   return rond||(demi&&v<=6); },
+      function(v){ st.dist=v; renderDist(); }, 2);
     $("mm").onclick=function(){ sync(); st.dist=st.dist?Math.max(0.25,Math.round((st.dist-0.25)*4)/4):1; renderDist(); };
     $("pp").onclick=function(){ sync(); st.dist=st.dist?Math.round((st.dist+0.25)*4)/4:1; renderDist(); };
     $("next").onclick=function(){ sync();
@@ -1112,19 +1125,34 @@ function formPutt(ins,prefill){
     $("back").onclick=renderDist;
   }
   function renderRest(){
-    e.innerHTML='<p class="label">3 · Distance restante</p><div class="big" id="dv">'+fmt(st.rest)+'</div>'+
-      '<div class="bigu">mètres — deviendra le putt suivant</div>'+
-      '<div class="stepper"><button id="mm">−</button><div class="chips one" id="quick"></div><button id="pp">+</button></div>'+
-      '<button class="btn primary" id="next" style="margin-top:12px">Continuer</button>'+
+    e.innerHTML='<p class="label">3 · Distance restante</p>'+
+      '<div class="stepper"><button id="mm">−</button><div class="big" id="dv">'+fmt(st.rest)+'</div><button id="pp">+</button></div>'+
+      '<div class="bigu">mètres</div>'+
+      wheelBox("quick")+
+      '<button class="btn primary" id="tap">Tap in — rentré juste après</button>'+
+      '<button class="btn" id="next" style="margin-top:10px">Continuer — détail du putt</button>'+
       '<button class="btn ghost" id="back">Changer le résultat</button>';
-    var q=$("quick");
-    QR.forEach(function(v){
-      var b=document.createElement("button"); b.className="chip"+(st.rest===v?" sel":""); b.textContent=fmt(v);
-      b.onclick=function(){ st.rest=v; renderRest(); }; q.appendChild(b);
-    });
-    $("mm").onclick=function(){ st.rest=Math.max(0,Math.round((st.rest-0.25)*4)/4); $("dv").textContent=fmt(st.rest); };
-    $("pp").onclick=function(){ st.rest=Math.round((st.rest+0.25)*4)/4; $("dv").textContent=fmt(st.rest); };
+    fillWheel("quick",restScale(),st.rest,
+      function(v){ return Math.abs(v*2-Math.round(v*2))<0.01; },        // chiffre tous les 50 cm
+      function(v){ st.rest=v; renderRest(); }, 0.5);
+    $("mm").onclick=function(){ st.rest=Math.max(0.1,Math.round((st.rest-0.25)*4)/4); renderRest(); };
+    $("pp").onclick=function(){ st.rest=Math.round((st.rest+0.25)*4)/4; renderRest(); };
+    $("tap").onclick=tapIn;
     $("next").onclick=renderOpt; $("back").onclick=renderRes;
+  }
+  /* tap in : on enregistre le putt manqué ET le petit putt rentré derrière, d'un seul geste */
+  function tapIn(){
+    var h=hole(cur), at=(ins!=null)?ins:h.shots.length;
+    var manque={type:"putt",dist:st.dist,res:st.res,rest:st.rest,brk:st.brk,amt:st.amt,
+                slope:st.slope,read:st.read,exec:st.exec.slice()};
+    var rentre={type:"putt",dist:st.rest,res:"IN",rest:0,brk:null,amt:null,slope:null,read:null,exec:[]};
+    h.shots.splice(at,0,manque,rentre);
+    if(ins!=null) h.done=false;
+    draft=null; formOpen=false; save();
+    toast("Putt + tap in ✓  ("+nShots(h)+" coups · "+nPutts(h)+" putts)",function(){
+      h.shots.splice(at,2); save(); paintHole();
+    });
+    paintHole(); askValidate();
   }
   function renderOpt(){
     e.innerHTML='<p class="label">'+(st.res==="IN"?"Putt rentré de "+fmt(st.dist)+" m":"Détail — facultatif")+'</p>'+
