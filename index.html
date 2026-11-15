@@ -795,14 +795,12 @@ function paintParcours(){
 function openHole(i){ suspendedShot=null; cur=i; draft=null; formOpen=false; paintHole(); }
 function paintHole(){
   show("Trou");
-  var h=hole(cur), d=dist(cur), t=tee(), col=TEECOL[t.name]||"#9ca3af";
-  $("hTitle").textContent="Trou "+h.n;
-  $("hSub").textContent=nShots(h)+" coup"+(nShots(h)>1?"s":"")+" · "+nPutts(h)+" putt"+(nPutts(h)>1?"s":"")+(h.done?" · validé":"");
-  $("holeRef").innerHTML='<span class="tee" style="background:'+col+'"></span>'+
-    '<span class="t"><b>Par '+par(cur)+(d?' · '+d+' m':' · distance à compléter')+'</b>'+
-    '<span>'+course().name+' — départ '+t.name+'</span></span>'+
-    '<button class="btn small" style="width:auto;padding:0 14px" id="hRef">Modifier</button>';
-  $("hRef").onclick=paintParcours;
+  var h=hole(cur), d=dist(cur);
+  $("hTitle").textContent="Trou "+h.n+" · Par "+par(cur);
+  $("hSub").textContent=(d?d+" m":"distance à compléter")+" · "+
+    nShots(h)+" coup"+(nShots(h)>1?"s":"")+" · "+nPutts(h)+" putt"+(nPutts(h)>1?"s":"")+(h.done?" · validé":"");
+  $("holeRef").innerHTML="";            // repère parcours retiré : il tient dans la barre verte
+  $("holeRef").style.display="none";    // le parcours et le départ se changent depuis la carte du tour
   paintShots(); paintEntry(); paintHoleBar();
 }
 function shotLine(s){
@@ -873,6 +871,8 @@ function paintEntry(scroll){
     e.innerHTML='<p class="label">Trou validé</p><p class="muted">« Rouvrir le trou » en bas pour corriger.</p>';
     return;
   }
+  /* premier coup d'un trou : c'est forcément un départ en jeu long — on saute le choix */
+  if(ins==null && !h.shots.length && !h.done){ formLong(null,1,true); return; }
   var prev=h.shots[h.shots.length-1];
   var needTo=(ins==null && prev && prev.type==="long" && prev.lie==="Départ" && !prev.to);
   /* balle sur le green : le coup suivant ne peut être qu'un putt */
@@ -916,19 +916,21 @@ function lieFromPrev(num,ins){
   if(p && p.to && LIES.indexOf(p.to)>=0) return p.to;
   return "Fairway";
 }
-function formLong(ins,num){
+function formLong(ins,num,autoTee){
+  var tee1=(num===1);   // départ : position de balle imposée, pas de choix à faire
   var d0 = (num===1 && dist(cur)) ? dist(cur) : 150;
   var st={lie:lieFromPrev(num,ins), dist:d0, intent:null,
           club:(num===1 && par(cur)>3) ? "Dr" : null};
   var e=$("entry");
   function sync(){ var v=parseInt(($("dv")||{}).value,10); if(v>0) st.dist=v; }
   /* l'intention ne sert que là où il y a un vrai choix : long deuxième coup, ou sortie de difficulté */
-  function needIntent(){ return st.dist>180 || (par(cur)===5 && num===2) || st.lie==="Arbres"; }
+  /* au départ, le club dit déjà l'intention : on ne demande rien de plus */
+  function needIntent(){ return !tee1 && (st.dist>180 || (par(cur)===5 && num===2) || st.lie==="Arbres"); }
   function toggleIntent(){ var b=$("intBox"); if(b) b.classList.toggle("hidden", !needIntent()); }
   function render(){
-    e.innerHTML='<p class="label">1 · Position de balle</p><div class="grid g3" id="lies" style="margin-bottom:16px"></div>'+
-      '<p class="label">2 · Club'+(st.club?' — '+st.club:'')+'</p><div class="chips" id="clubs" style="margin-bottom:16px"></div>'+
-      '<p class="label">3 · Distance au drapeau</p>'+
+    e.innerHTML=(tee1?'':'<p class="label">1 · Position de balle</p><div class="grid g3" id="lies" style="margin-bottom:16px"></div>')+
+      '<p class="label">'+(tee1?'1':'2')+' · Club'+(tee1?' au départ':'')+(st.club?' — '+st.club:'')+'</p><div class="chips" id="clubs" style="margin-bottom:16px"></div>'+
+      '<p class="label">'+(tee1?'2 · Longueur du trou':'3 · Distance au drapeau')+'</p>'+
       '<div class="stepper"><button id="mm">−</button>'+
         '<input class="bigin" id="dv" type="number" inputmode="numeric" step="1" min="1" value="'+st.dist+'">'+
         '<button id="pp">+</button></div>'+
@@ -936,14 +938,16 @@ function formLong(ins,num){
       '<div id="intBox" class="'+(needIntent()?"":"hidden")+'" style="margin-bottom:14px">'+
         '<p class="label">Intention</p><div class="chips one" id="cint"></div></div>'+
       (num===1&&dist(cur)?'<div class="chips" id="quick" style="margin-bottom:10px"></div>':'')+
-      '<button class="btn primary" id="ok" style="margin-top:8px">Enregistrer le coup</button>'+
-      '<button class="btn ghost" id="ca">Annuler</button>';
+      '<button class="btn primary" id="ok" style="margin-top:8px">'+(tee1?'Enregistrer le départ':'Enregistrer le coup')+'</button>'+
+      (tee1?'<button class="btn small" id="pen" style="margin-top:10px">Ajouter une pénalité (+1)</button>':'')+
+      (autoTee?'':'<button class="btn ghost" id="ca">Annuler</button>');
     var g=$("lies");
-    LIES.forEach(function(l){
+    if(g) LIES.forEach(function(l){
       var b=document.createElement("button");
       b.className="btn small"+(st.lie===l?" sel":""); b.textContent=l;
       b.onclick=function(){ sync(); st.lie=l; render(); }; g.appendChild(b);
     });
+    if($("pen")) $("pen").onclick=function(){ addShot({type:"penalty"},ins); };
     var cw=$("clubs");
     (S.bag||DEFBAG).forEach(function(cl){
       var b=document.createElement("button");
@@ -968,10 +972,12 @@ function formLong(ins,num){
     $("pp").onclick=function(){ sync(); st.dist+=5; $("dv").value=st.dist; toggleIntent(); };
     $("ok").onclick=function(){ sync(); addShot({type:"long",lie:st.lie,dist:st.dist,club:st.club,
       intent:(needIntent()?st.intent:null)},ins); };
-    $("ca").onclick=function(){ draft=null; formOpen=false; paintEntry(); paintHoleBar(); };
+    if($("ca")) $("ca").onclick=function(){ draft=null; formOpen=false; paintEntry(); paintHoleBar(); };
   }
-  formOpen=true; paintHoleBar();
-  render(); e.scrollIntoView({behavior:"smooth",block:"start"});
+  /* le départ s'ouvre tout seul : la barre du bas reste celle du trou */
+  if(!autoTee){ formOpen=true; }
+  paintHoleBar();
+  render(); if(!autoTee) e.scrollIntoView({behavior:"smooth",block:"start"});
 }
 function formPutt(ins,prefill){
   var st={dist:prefill||3,res:null,rest:0.5,brk:null,amt:null,slope:null,read:null,exec:[]};
