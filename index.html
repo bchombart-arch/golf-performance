@@ -73,6 +73,11 @@
   .grid{display:grid;gap:10px}
   .g2{grid-template-columns:1fr 1fr}
   .g3{grid-template-columns:1fr 1fr 1fr}
+  /* trois colonnes : le libellé doit tenir sur une ligne, même en A+ */
+  .g3 .btn,.g2 .btn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;
+    line-height:calc(var(--tap) - 20px);padding:10px 6px;text-align:center}
+  .g3 .btn{font-size:min(.95em,4.4vw)}
+  .g2 .btn{font-size:min(.95em,4.1vw)}
   .card{background:var(--card);border:2px solid var(--line);border-radius:18px;padding:14px;margin-bottom:12px}
   .label{font-size:.78em;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);margin:0 0 8px}
   /* bandeau parcours */
@@ -325,7 +330,6 @@
   <section id="vCarte">
     <div class="course" id="courseBar"></div>
     <div id="resume"></div>
-    <div class="card"><div class="tot" id="totBox"></div></div>
     <div class="card">
       <p class="label">Les 18 trous</p>
       <div class="holes" id="holes"></div>
@@ -335,6 +339,7 @@
         <span><i class="dot d-none"></i>Non saisi</span>
       </div>
     </div>
+    <div class="card"><div class="tot" id="totBox"></div></div>
     <div class="grid g2">
       <button class="btn small" id="btnBilan">Bilan du tour</button>
       <button class="btn small danger" id="btnReset">Nouveau tour</button>
@@ -595,18 +600,17 @@ function show(v){
 
 /* ---------- carte ---------- */
 function courseBarHTML(){
-  var c=course(), t=tee(), col=TEECOL[t.name]||"#9ca3af";
+  var c=course(), t=tee();
   var tot=0,i; for(i=0;i<18;i++) tot+=dist(i);
-  return '<span class="tee" style="background:'+col+'"></span>'+
-    '<span class="t"><b>'+c.name+'</b><span>'+(S.round.type||"Partie amicale")+' · départ '+t.name+' · par '+c.pars.reduce(function(a,b){return a+b;},0)+
-    (tot?' · '+tot+' m':' · distances à compléter')+'</span></span>'+
+  return '<span class="t"><b>'+c.name+'</b><span>'+t.name+' · par '+c.pars.reduce(function(a,b){return a+b;},0)+
+    (tot?' · '+tot+' m':' · distances à compléter')+' · '+displayRoundDate(R().date)+'</span></span>'+
     '<button class="btn small" style="width:auto;padding:0 14px" id="cEdit">Changer</button>';
 }
 function paintCarte(){
   show("Carte");
   $("hTitle").textContent="Carte du tour";
   var t=totals();
-  $("hSub").textContent=t.v+" trous validés · "+t.c+" coups enregistrés · "+displayRoundDate(R().date);
+  $("hSub").textContent=t.v+"/18 trous · "+t.c+" coups";   // la date est passée sur la ligne du parcours
   $("courseBar").innerHTML=courseBarHTML();
   $("cEdit").onclick=paintParcours;
   $("totBox").innerHTML=totTiles();
