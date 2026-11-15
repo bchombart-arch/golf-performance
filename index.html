@@ -1666,13 +1666,19 @@ function paintStats(){
     return {round:round,totals:totals(round),metrics:roundSG(round)};
   });
   var today=localRoundDate();
+  /* la période s'ouvrait sur aujourd'hui–aujourd'hui : rien à montrer. 30 jours, et au moins la dernière partie. */
+  var il=new Date(today+"T12:00:00"); il.setDate(il.getDate()-30);
+  var depart=il.toISOString().slice(0,10);
+  var datesCo=rounds.map(function(x){return x.round.date;}).filter(Boolean).sort();
+  if(datesCo.length && datesCo[datesCo.length-1]<depart) depart=datesCo[datesCo.length-1];
+  var premiere=datesCo[0]||depart;
   $("vStats").innerHTML='<div class="card" style="padding:8px 10px"><div class="rowscroll" style="margin-bottom:0" role="group" aria-label="Secteurs">'+
     labels.map(function(label,i){
       return '<button type="button" class="btn small" id="statsSector'+i+'">'+label+'</button>';
     }).join("")+'</div></div>'+
     '<div class="card"><p class="label">Période</p>'+
     '<div class="critrow"><span class="k">Du</span>'+
-      '<input class="txt dateline" type="date" id="statsFrom" value="'+today+'"></div>'+
+      '<input class="txt dateline" type="date" id="statsFrom" value="'+depart+'"></div>'+
     '<div class="critrow"><span class="k">Au</span>'+
       '<input class="txt dateline" type="date" id="statsTo" value="'+today+'"></div>'+
     '</div>'+
@@ -1688,6 +1694,19 @@ function paintStats(){
       return;
     }
     var selected=rounds.filter(function(item){return item.round.date>=from&&item.round.date<=to;});
+    var dansPeriode=function(x){return x && x.date>=from && x.date<=to;};
+    var seances=puttingLog().filter(dansPeriode).length+(S.ladderSessions||[]).filter(dansPeriode).length+
+                shortSessions().filter(dansPeriode).length+longSessions().filter(dansPeriode).length;
+    if(!selected.length && !seances){        // rien du tout : un seul message au lieu de trois cartes vides
+      $("statsProgress").innerHTML='<div class="card" role="status"><p>Rien sur cette période.</p>'+
+        (datesCo.length?'<button class="btn small" id="statsAll">Voir tout l’historique</button>'
+                       :'<p class="muted">Les stats arrivent dès qu’une partie est terminée et enregistrée, ou qu’un exercice est fait.</p>')+
+        '</div>';
+      if($("statsAll")) $("statsAll").onclick=function(){
+        $("statsFrom").value=premiere; $("statsTo").value=today; render();
+      };
+      return;
+    }
     $("statsProgress").innerHTML=selected.length?sectorStats(section,selected):
       '<div class="card"><p>Aucune partie complète sur cette période.</p></div>';
     if(section===0){
