@@ -1166,7 +1166,7 @@ function formPutt(ins,prefill){
     paintHole(); askValidate();
   }
   function renderOpt(){
-    e.innerHTML='<p class="label">'+(st.res==="IN"?"Putt rentré de "+fmt(st.dist)+" m":"Détail — facultatif")+'</p>'+
+    e.innerHTML='<p class="label">'+(st.res==="IN"?"Putt rentré de "+fmt(st.dist)+" m":"Détail du putt — facultatif")+'</p>'+
       '<div class="opt" style="border-top:none;margin-top:0;padding-top:0">'+
       '<div class="critrow"><span class="k">Cassure</span><div class="rowscroll" id="cb"></div></div>'+
       '<div class="critrow"><span class="k">Taille</span><div class="rowscroll" id="ca2"></div></div>'+
@@ -1175,9 +1175,11 @@ function formPutt(ins,prefill){
         ? '<div class="critrow"><span class="k">Lecture</span><div class="rowscroll" id="crd"></div></div>'+
           '<div class="critrow"><span class="k">Exécution</span><div class="rowscroll" id="cex"></div></div>'
         : '')+
-      '<p class="muted" style="margin:10px 0 12px;font-size:.62em">Laisse vide ce que tu n’as pas observé · lecture : un seul choix, exécution : plusieurs.</p></div>'+
-      '<button class="btn primary" id="ok">Enregistrer le putt</button>'+
-      (st.res!=="IN"?'<button class="btn" id="okTap" style="margin-top:10px">Enregistrer + tap in</button>':'')+
+      '</div>'+
+      (st.res!=="IN"
+        ? '<div class="grid g2" style="margin-top:10px"><button class="btn primary" id="ok">Enregistrer</button>'+
+          '<button class="btn" id="okTap">+ tap in</button></div>'
+        : '<button class="btn primary" id="ok" style="margin-top:10px">Enregistrer le putt</button>')+
       '<button class="btn ghost" id="back">Revenir</button>';
     function set(id,list,get,fn){
       var w=$(id); if(!w) return;
