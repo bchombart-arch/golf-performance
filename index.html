@@ -79,20 +79,22 @@
             mask-image:linear-gradient(90deg,#000 0,#000 94%,transparent 100%)}
   .rowscroll::-webkit-scrollbar{display:none}
   /* molette : une règle graduée qui défile sous le pouce, le trait central marque la valeur */
-  .wheel{position:relative;margin:4px 0 10px}
+  .wheel{position:relative;margin:2px 0 12px;border:2px solid var(--line);border-radius:14px;
+    background:var(--card);padding:6px 0 4px;overflow:hidden}
   .wheel .track{display:flex;flex-wrap:nowrap;gap:0;overflow-x:auto;touch-action:pan-x;
-    overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scrollbar-width:none;
-    padding:6px 50%;-webkit-overflow-scrolling:touch}
+    overscroll-behavior-x:contain;scroll-snap-type:x proximity;scrollbar-width:none;
+    padding:0 50%;-webkit-overflow-scrolling:touch}
   .wheel .track::-webkit-scrollbar{display:none}
-  .wheel .track button{flex:0 0 auto;scroll-snap-align:center;width:58px;min-height:62px;
+  .wheel .track button{flex:0 0 auto;scroll-snap-align:center;width:46px;min-height:52px;
     border:0;background:transparent;display:flex;flex-direction:column;align-items:center;
-    justify-content:flex-end;gap:5px;color:var(--ink2);font-size:.62em;font-weight:700;padding:0}
-  .wheel .track button i{display:block;width:2px;height:16px;background:var(--line);border-radius:2px}
-  .wheel .track button.big i{height:26px;background:var(--ink2)}
-  .wheel .track button.sel{color:var(--ok)}
-  .wheel .track button.sel i{background:var(--ok);height:30px;width:3px}
-  .wheel .mark{position:absolute;left:50%;top:0;bottom:16px;width:2px;margin-left:-1px;
-    background:var(--ok);opacity:.35;pointer-events:none;border-radius:2px}
+    justify-content:flex-start;gap:4px;color:var(--ink2);font-size:.62em;font-weight:700;padding:0}
+  .wheel .track button span{height:1.2em;line-height:1.2em}
+  .wheel .track button i{display:block;width:2px;height:12px;background:var(--line);border-radius:2px}
+  .wheel .track button.big i{height:20px;background:var(--ink2);opacity:.55}
+  .wheel .track button.sel{color:var(--ok);font-size:.78em}
+  .wheel .track button.sel i{background:var(--ok);height:24px;width:3px;opacity:1}
+  .wheel .mark{position:absolute;left:50%;bottom:4px;height:30px;width:2px;margin-left:-1px;
+    background:var(--ok);opacity:.3;pointer-events:none;border-radius:2px}
   .rowscroll>*{flex:0 0 auto;width:auto;min-width:0;white-space:nowrap;
     min-height:48px;padding:0 13px;font-size:.72em;border-radius:12px}
   html.xl .rowscroll>*{min-height:54px;font-size:.64em}
@@ -1063,18 +1065,20 @@ function formPutt(ins,prefill){
       (prefill?'<p class="muted" style="text-align:center;margin:8px 0 0">Distance restante du putt précédent</p>':'')+
       '<button class="btn primary" id="next" style="margin-top:12px">Résultat du putt</button>'+
       '<button class="btn ghost" id="ca">Annuler</button>';
-    var q=$("quick"), vals=puttScale(), sel=null;
+    var q=$("quick"), vals=puttScale(), sel=null, deux=null;
     vals.forEach(function(v){
+      var rond=(Math.abs(v-Math.round(v))<0.01);
+      var demi=(Math.abs(v*2-Math.round(v*2))<0.01);
+      var ecrit=rond||(demi&&v<=6);                 // chiffre tous les 50 cm jusqu'à 6 m, puis au mètre
       var b=document.createElement("button");
-      var rond=(Math.abs(v-Math.round(v))<0.01);                  // graduation haute sur les mètres entiers
       b.className=(rond?"big":"")+(st.dist===v?" sel":"");
-      b.innerHTML='<span>'+(rond||st.dist===v?fmt(v):"")+'</span><i></i>';
+      b.innerHTML='<span>'+(ecrit||st.dist===v?fmt(v):"")+'</span><i></i>';
       b.onclick=function(){ st.dist=v; renderDist(); };
       if(st.dist===v) sel=b;
+      if(Math.abs(v-2)<0.01) deux=b;
       q.appendChild(b);
     });
-    if(sel) sel.scrollIntoView({block:"nearest",inline:"center"});
-    else q.scrollLeft=0;
+    (sel||deux||q.firstChild).scrollIntoView({block:"nearest",inline:"center"});
     $("mm").onclick=function(){ sync(); st.dist=st.dist?Math.max(0.25,Math.round((st.dist-0.25)*4)/4):1; renderDist(); };
     $("pp").onclick=function(){ sync(); st.dist=st.dist?Math.round((st.dist+0.25)*4)/4:1; renderDist(); };
     $("next").onclick=function(){ sync();
