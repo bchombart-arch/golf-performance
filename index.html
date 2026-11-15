@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#15506b">
 <link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAADi0lEQVR4Xu3d0U0bURCGURylBVxFOqAJUofzSBl5DHWkCndAFW6CPFiyLIEVht07d2Y55xlnV/G3/66FgN394+EO3vPNfwu3iANxEGc5sBzEWQ4sB3GWA8tBnOXAchBnObAcxFkOLAdxlgPLQZzlwHIQZzmwHMRZDiwHcZYDy0Gc5cByEGc5sBzEWQ4sB3GWA8tBnOXAchBnObAcxH2Pv4QPOf398/br9j9/fejFNbit4LZCnOXAcsxzOnb9HdGWI8PpeOiYiDjynI6Hl6fXvOMt5qNstksfP37vso8dZDmmeXl6LT4k4pisciLiKKFmIp45Cqn2OGI5KioyJOKoa3oi4qhuYiKeOXqY8jhiOZrJHBJxtJSTiDgaG52IZ472xj2OWI7tWH1ILMd2rP5tXnG0t3oTF+JobFwWZ+JoaXQW4mgpJwtxdJLZhGeONqZkYTmqm5iFOOqanoU4yinShGeOWqplYTlKqJmFOCarnIU45qjfxIVv2efZPzw3KsP3VpLsH56TjrQqyzFc0zLu7sTBbZaDm8SBOIizHFgO4iwHloM4y4HlIM5yYDmIsxxYDuIsB5aDOMuB5SDOcmA5iKv7m33e/YvO13r9deeOasXx3yCuXX+xUEaoEkcoi7fOL5fIuubHsTCLt1sikbXMjGPFLCQywrSPsoPKuBj9738Fc+LIeedyjrJh2beV5DfMg+oSqcuRXIZbzEJ5ccwq42zu0ZvKi4N2kuKocOFWOIdeMuKo867UOZMWhsdR7f2odj6VDY+DvsbGUfMyrXlWBY2Ng9YGxlH5Aq18bnUMjIPuRsVR/9Ksf4bTjYqDDRAHN4mD3Di63M67nOcsloPc5WAbLAeWgzjLgeUgznJgOYizHNyU/RNvX8cGfth/yHJ0+X/pcp6zDImDbRAHPq0QN2o56t/O65/hdKPiYAMGxlH50qx8bnUMjIPuxsZR8wKteVYFjY2D1obHUe0yrXY+lQ2Po9RvnVZGSEYcRfpQRlRSHHSUF8fcC3fu0ZvKi2PizUUZn7O7fzx87pVLpP0coiyWSF2Oi5z3LOcoGzYnjoRbjDKWm3Nbubb6LUYWa5kfx9kqichiXVXiWJiILEaoFUfodiOI0erGwXTTPq1Qnzi4SRyIgzjLgeUgznJgOYizHFgO4iwHloM4y4HlIM5yYDmIsxxYDuIsB5aDOMuB5SDOcmA5iLMcWA7i/gFMYsrAX3OxSgAAAABJRU5ErkJggg==">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Golf Performance — Saisie du tour</title>
 <style>
   :root{
@@ -20,7 +20,14 @@
   }
   html.xl{ --fs:25px; --tap:84px; }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
-  html,body{margin:0;padding:0}
+  /* l'écran ne se déplace que verticalement : ni pincement, ni glissement latéral, ni rebond */
+  html,body{
+    margin:0;padding:0;width:100%;max-width:100%;
+    overflow-x:hidden;                 /* rien ne dépasse sur le côté */
+    overscroll-behavior:none;          /* pas de rebond, pas de retour arrière au bord */
+    touch-action:pan-y;                /* un doigt fait défiler vers le haut ou le bas, c'est tout */
+  }
+  body{overflow-wrap:anywhere}         /* un mot trop long se coupe au lieu d'élargir la page */
   body{
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     font-size:var(--fs); line-height:1.3; color:var(--ink); background:var(--bg);
@@ -29,10 +36,12 @@
   /* coquille d'application : plein écran sur téléphone, châssis centré sur grand écran */
   .app{
     position:relative; width:100%; max-width:430px; margin:0 auto; background:var(--bg);
-    height:100vh; height:100dvh; overflow:hidden; display:flex; flex-direction:column;
+    height:100vh; height:100dvh; overflow:hidden; overflow-x:hidden; display:flex; flex-direction:column;
+    touch-action:pan-y;
     padding-top:env(safe-area-inset-top);
   }
-  .scroll{flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain}
+  .scroll{flex:1; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch;
+          overscroll-behavior-y:contain; overscroll-behavior-x:none; touch-action:pan-y}
   .wrap{max-width:none;margin:0;padding:0 12px 24px}
   @media (min-width:760px) and (min-height:720px){
     body{background:#20262c; display:flex; align-items:center; justify-content:center; min-height:100vh}
@@ -40,7 +49,7 @@
          box-shadow:0 30px 70px rgba(0,0,0,.45); overflow:hidden}
   }
   header{
-    position:sticky;top:0;z-index:20;background:var(--bg);padding-top:env(safe-area-inset-top);
+    position:sticky;top:0;z-index:20;background:var(--bg);
     padding:10px 12px 8px;margin:0 -12px 10px;border-bottom:2px solid var(--line);
   }
   .hrow{display:flex;align-items:center;gap:10px}
@@ -245,6 +254,7 @@
   .home-profile{position:relative;isolation:isolate;overflow:hidden;display:flex;align-items:flex-end;
     min-height:290px;aspect-ratio:1.18;margin-bottom:14px;padding:16px;border-radius:18px;
     color:white;background:linear-gradient(145deg,#277448,#102f21)}
+  img,canvas,svg,table,pre{max-width:100%}
   .home-cover{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;z-index:-2}
   .home-profile.has-cover:after{content:"";position:absolute;inset:0;z-index:-1;
     background:linear-gradient(0deg,rgba(6,22,13,.9),rgba(6,22,13,.48) 36%,transparent 70%);pointer-events:none}
