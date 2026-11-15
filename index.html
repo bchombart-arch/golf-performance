@@ -69,6 +69,16 @@
   .btn.primary{background:var(--ok);border-color:var(--ok);color:#fff;font-size:1.25em}
   .btn.ghost{background:transparent;border-color:transparent;color:var(--blue);font-weight:700;min-height:56px}
   .btn.small{min-height:56px;font-size:.95em;border-radius:12px}
+  /* rangée unique qui défile de droite à gauche : le seul endroit où le doigt va de côté */
+  .rowscroll{display:flex;flex-wrap:nowrap;gap:8px;overflow-x:auto;overflow-y:hidden;
+    touch-action:pan-x;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;
+    scrollbar-width:none;padding:2px 0 6px;margin-bottom:14px;
+    -webkit-mask-image:linear-gradient(90deg,#000 0,#000 94%,transparent 100%);
+            mask-image:linear-gradient(90deg,#000 0,#000 94%,transparent 100%)}
+  .rowscroll::-webkit-scrollbar{display:none}
+  .rowscroll>*{flex:0 0 auto;width:auto;min-width:0;white-space:nowrap;
+    min-height:50px;padding:0 14px;font-size:.8em;border-radius:12px}
+  html.xl .rowscroll>*{min-height:56px;font-size:.72em}
   .btn.danger{color:var(--red);border-color:#f3c9c9}
   .grid{display:grid;gap:10px}
   .g2{grid-template-columns:1fr 1fr}
@@ -469,7 +479,7 @@ var RTYPES=["Compétition","Partie amicale","Entraînement"];
 var PINS=["Avant","Milieu","Arrière"];
 var QP=[0.5,1,1.5,2,2.5,3,4,5,6,8,10,12,15,20], QR=[0.25,0.5,0.75,1,1.5,2,3];
 var ALLCLUBS=["Dr","B3","B5","H2","H3","H4","F3","F4","F5","F6","F7","F8","F9","PW","GW","SW","LW"];
-var DEFBAG=["Dr","B3","H3","F4","F5","F6","F7","F8","F9","PW","GW","SW","LW"];
+var DEFBAG=["Dr","B3","H3","F4","F5","F6","F7","F8","F9","PW","GW","SW","LW","Pu"];
 var TEECOL={"Blanc":"#ffffff","Jaune":"#f5c518","Bleu":"#2563eb","Rouge":"#dc2626","Violet":"#7c3aed","Orange":"#ea580c","Noir":"#111111","Départ":"#9ca3af"};
 
 /* ---- bibliothèque de parcours (données à vérifier sur la carte du club) ---- */
@@ -905,7 +915,7 @@ function paintEntry(scroll){
      (prev.type==="long"&&(prev.land==="GREEN"||prev.to==="Green"))));
   e.innerHTML=(needTo
       ? '<p class="label">Résultat du départ — où est partie la balle ?</p>'+
-        '<div class="chips" id="toc" style="margin-bottom:18px"></div>'
+        '<div class="rowscroll" id="toc"></div>'
       : '')+
     '<p class="label">'+(ins!=null?"Coup oublié — position "+num:"Coup n° "+num)+
       (onGreen?" — balle sur le green":"")+'</p>'+
@@ -952,8 +962,8 @@ function formLong(ins,num,autoTee){
   function needIntent(){ return !tee1 && (st.dist>180 || (par(cur)===5 && num===2) || st.lie==="Arbres"); }
   function toggleIntent(){ var b=$("intBox"); if(b) b.classList.toggle("hidden", !needIntent()); }
   function render(){
-    e.innerHTML=(tee1?'':'<p class="label">1 · Position de balle</p><div class="grid g3" id="lies" style="margin-bottom:16px"></div>')+
-      '<p class="label">'+(tee1?'1':'2')+' · Club'+(tee1?' au départ':'')+(st.club?' — '+st.club:'')+'</p><div class="chips" id="clubs" style="margin-bottom:16px"></div>'+
+    e.innerHTML=(tee1?'':'<p class="label">1 · Position de balle</p><div class="rowscroll" id="lies"></div>')+
+      '<p class="label">'+(tee1?'1':'2')+' · Club'+(tee1?' au départ':'')+(st.club?' — '+st.club:'')+'</p><div class="rowscroll" id="clubs"></div>'+
       '<p class="label">'+(tee1?'2 · Longueur du trou':'3 · Distance au drapeau')+'</p>'+
       '<div class="stepper"><button id="mm">−</button>'+
         '<input class="bigin" id="dv" type="number" inputmode="numeric" step="1" min="1" value="'+st.dist+'">'+
@@ -3261,6 +3271,7 @@ S=load();
 
 if(!S||!S.courses||!S.round||!S.round.holes||S.round.holes.length!==18) S=freshState();
 if(!S.bag || !S.bag.length) S.bag=DEFBAG.slice();
+if(!S.bagPutter){ if(S.bag.indexOf("Pu")<0) S.bag.push("Pu"); S.bagPutter=true; }  // une seule fois : retirable dans Profil
 if(!S.prefTee){                      // préférence par défaut : boules blanches
   S.prefTee="Blanc";
   var _c=course();
