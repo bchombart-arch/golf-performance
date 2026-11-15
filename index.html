@@ -1142,15 +1142,13 @@ function formPutt(ins,prefill){
       '<div class="stepper"><button id="mm">−</button><div class="big" id="dv">'+fmt(st.rest)+'</div><button id="pp">+</button></div>'+
       '<div class="bigu">mètres</div>'+
       wheelBox("quick")+
-      '<button class="btn primary" id="tap">Tap in — rentré juste après</button>'+
-      '<button class="btn" id="next" style="margin-top:10px">Continuer — détail du putt</button>'+
+      '<button class="btn primary" id="next">Continuer</button>'+
       '<button class="btn ghost" id="back">Changer le résultat</button>';
     fillWheel("quick",restScale(),st.rest,
       function(v){ return Math.abs(v*2-Math.round(v*2))<0.01; },        // chiffre tous les 50 cm
       function(v){ st.rest=v; renderRest(); }, 0.5);
     $("mm").onclick=function(){ st.rest=Math.max(0.1,Math.round((st.rest-0.25)*4)/4); renderRest(); };
     $("pp").onclick=function(){ st.rest=Math.round((st.rest+0.25)*4)/4; renderRest(); };
-    $("tap").onclick=tapIn;
     $("next").onclick=renderOpt; $("back").onclick=renderRes;
   }
   /* tap in : on enregistre le putt manqué ET le petit putt rentré derrière, d'un seul geste */
