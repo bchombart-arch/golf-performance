@@ -441,6 +441,7 @@ var LAND=[["LG","Long-Gauche"],["LC","Long"],["LD","Long-Droite"],
           ["CG","Court-Gauche"],["CC","Court"],["CD","Court-Droite"]];
 var APLIES=["Avant-green","Rough","Bunker","Fairway","Arbres","Eau / HL"];
 var INTENTS=["Attaque","Lay-up","Dégagement"];
+var WINDS=["Contre","Nul","Portant"];   // le vent change le résultat d'un même coup
 
 /* ================= BARÈME PROVISOIRE DE COUPS ATTENDUS =================
    Ordres de grandeur du niveau PGA Tour, en mètres. Ces valeurs servent à
@@ -1003,7 +1004,7 @@ function lieFromPrev(num,ins){
 function formLong(ins,num,autoTee){
   var tee1=(num===1);   // départ : position de balle imposée, pas de choix à faire
   var base = (num===1 && dist(cur)) ? dist(cur) : 100;   // point de départ des boutons − et +, pas une valeur inscrite
-  var st={lie:lieFromPrev(num,ins), dist:null, intent:null,
+  var st={lie:lieFromPrev(num,ins), dist:null, intent:null, vent:null,
           club:(num===1 && par(cur)>3) ? "Dr" : null};
   var e=$("entry");
   function sync(){ var el=$("dv"); if(!el) return; var v=parseInt(el.value,10); st.dist=(v>0)?v:null; }
@@ -1021,6 +1022,7 @@ function formLong(ins,num,autoTee){
       '<div class="bigu">valeur du télémètre (m)</div>'+
       '<div id="intBox" class="'+(needIntent()?"":"hidden")+'" style="margin-bottom:14px">'+
         '<p class="label">Intention</p><div class="rowscroll" id="cint" style="margin-bottom:4px"></div></div>'+
+      '<div class="critrow sh"><span class="k">Vent</span><div class="rowscroll" id="cvent"></div></div>'+
       (num===1&&dist(cur)?'<div class="chips" id="quick" style="margin-bottom:10px"></div>':'')+
       '<button class="btn primary" id="ok" style="margin-top:8px">'+(tee1?'Enregistrer le départ':'Enregistrer le coup')+'</button>'+
       (tee1?'<button class="btn small" id="pen" style="margin-top:10px">Ajouter une pénalité (+1)</button>':'')+
@@ -1045,6 +1047,12 @@ function formLong(ins,num,autoTee){
       b2.onclick=function(){ st.dist=dist(cur); render(); };
       $("quick").appendChild(b2);
     }
+    var vw=$("cvent");
+    if(vw) WINDS.forEach(function(x){
+      var b=document.createElement("button");
+      b.className="chip"+(st.vent===x?" sel":""); b.textContent=x;
+      b.onclick=function(){ sync(); st.vent=(st.vent===x?null:x); render(); }; vw.appendChild(b);
+    });
     var iw=$("cint");
     INTENTS.forEach(function(x){
       var b=document.createElement("button");
@@ -1056,7 +1064,7 @@ function formLong(ins,num,autoTee){
     $("pp").onclick=function(){ sync(); st.dist=st.dist?st.dist+5:base; $("dv").value=st.dist; toggleIntent(); };
     $("ok").onclick=function(){ sync();
       if(!st.dist){ toast("Distance manquante"); $("dv").focus(); return; }   // rien ne part sans distance
-      addShot({type:"long",lie:st.lie,dist:st.dist,club:st.club,
+      addShot({type:"long",lie:st.lie,dist:st.dist,club:st.club,vent:st.vent,
       intent:(needIntent()?st.intent:null)},ins); };
     if($("ca")) $("ca").onclick=function(){ draft=null; formOpen=false; paintEntry(); paintHoleBar(); };
   }
@@ -1730,6 +1738,7 @@ function paintStats(){
     }
     if(section===1||section===2){
       var longProgress=$("statsProgress");
+      longProgress.innerHTML+=clubStats(selected.map(function(x){return x.round;}));
       longProgress.innerHTML+=longGameStats(from,to,section);
       bindLongSessions(longProgress,function(){
         paintStats();
@@ -1845,6 +1854,61 @@ function sgTrendTable(rounds,roundScore){
     '</tbody></table>';
 }
 
+/* ---- rapport par club : ce que chaque club rapporte et comment il rate ---- */
+function clubStats(rounds){
+  var par={};
+  rounds.forEach(function(r){
+    var pars=course(r).pars;
+    r.holes.forEach(function(h,hi){
+      if(!h.done||!holeComplete(h)) return;
+      h.shots.forEach(function(s,i){
+        if(s.type!=="long"||!s.club) return;
+        var e0=eLong(s.dist,s.lie);
+        var j=i+1; while(h.shots[j]&&h.shots[j].type==="penalty") j++;
+        var nx=h.shots[j];
+        var e1=nx?(nx.type==="putt"?ePutt(nx.dist):eLong(nx.dist,nx.lie)):0;
+        var o=par[s.club]||(par[s.club]={n:0,v:0,green:0,cible:0,long:0,court:0,g:0,d:0,vent:{}});
+        o.n++; o.v+=e0-e1-1;
+        var L=s.land, to=s.to;
+        if(L||to==="Green"){
+          o.cible++;
+          if(L==="GREEN"||to==="Green") o.green++;
+          else {
+            if(L&&L.charAt(0)==="L") o.long++;
+            else if(L&&L.charAt(0)==="C") o.court++;
+            if(L&&L.charAt(1)==="G") o.g++;
+            else if(L&&L.charAt(1)==="D") o.d++;
+          }
+        } else if(s.lie==="Départ"){
+          o.cible++;
+          if(to==="Fairway") o.green++;
+          else { if(s.side==="G") o.g++; else if(s.side==="D") o.d++; }
+        }
+        if(s.vent){ var w=o.vent[s.vent]||(o.vent[s.vent]={n:0,v:0}); w.n++; w.v+=e0-e1-1; }
+      });
+    });
+  });
+  var clubs=Object.keys(par).sort(function(a,b){return ALLCLUBS.indexOf(a)-ALLCLUBS.indexOf(b);});
+  if(!clubs.length) return '<div class="card"><p class="label">Jeu long par club</p><p class="muted">Aucun club renseigné.</p></div>';
+  var rows=clubs.map(function(cl){
+    var o=par[cl];
+    var rate=[]; if(o.long) rate.push(o.long+" long"); if(o.court) rate.push(o.court+" court");
+    if(o.g) rate.push(o.g+" G"); if(o.d) rate.push(o.d+" D");
+    return '<tr><td><b>'+cl+'</b></td><td>'+o.n+'</td><td>'+sgFmt(o.v)+'</td>'+
+      '<td>'+(o.cible?o.green+"/"+o.cible:"—")+'</td><td>'+(rate.join(" · ")||"—")+'</td></tr>';
+  }).join("");
+  var ventLignes=clubs.filter(function(cl){return Object.keys(par[cl].vent).length;}).map(function(cl){
+    var o=par[cl];
+    return '<tr><td><b>'+cl+'</b></td><td colspan="4">'+WINDS.filter(function(w){return o.vent[w];})
+      .map(function(w){return w.toLowerCase()+" : "+sgFmt(o.vent[w].v)+" ("+o.vent[w].n+")";}).join(" · ")+'</td></tr>';
+  }).join("");
+  return '<div class="card"><p class="label">Jeu long par club</p>'+
+    '<table class="sum"><thead><tr><th>Club</th><th>Coups</th><th>SG</th><th>Cible</th><th>Ratés</th></tr></thead>'+
+    '<tbody>'+rows+'</tbody></table>'+
+    (ventLignes?'<p class="label" style="margin-top:12px">Selon le vent</p><table class="sum"><tbody>'+ventLignes+'</tbody></table>':
+      '<p class="muted" style="margin-top:10px">Renseigne le vent à la saisie pour voir le détail contre / portant.</p>')+
+    '<p class="muted" style="margin-top:10px">Cible : greens touchés, ou fairways pour les départs. Ratés : sens du manqué.</p></div>';
+}
 function paintRoundReport(round){
   var pars=course(round).pars;
   function reportPar(i){return pars[i]||0;}
@@ -2155,7 +2219,8 @@ function paintRoundReport(round){
       '<tr><td>Raisons renseignées</td><td><b>'+withReason+'/'+missed+' — '+rate+' %</b></td></tr>'+
       '</tbody></table><p class="muted" style="margin-top:10px">Un raté peut être long et à gauche : les axes se recoupent.</p>'+puttAnalysis+readCard+'</div>'+
     teeCard+apCard+scCard+intCard+
-    '<div class="card"><p class="label">Jeu long par club</p>'+
+    clubStats([round])+
+    '<div class="card"><p class="label">Distance couverte par club</p>'+
       (clubRows
         ? '<table class="sum"><thead><tr><th>Club</th><th>Coups</th><th>Distance couverte</th></tr></thead><tbody>'+clubRows+'</tbody></table>'+
           (noClub?'<p class="muted" style="margin-top:10px">'+noClub+' coup'+(noClub>1?'s':'')+' sans club renseigné.</p>':'')
