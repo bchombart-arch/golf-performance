@@ -19,6 +19,7 @@
     --tap:72px;
   }
   html.xl{ --fs:25px; --tap:84px; }
+  html.xl .btn{font-size:.92em}
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
   /* l'écran ne se déplace que verticalement : ni pincement, ni glissement latéral, ni rebond */
   html,body{
@@ -63,6 +64,7 @@
     display:flex;align-items:center;justify-content:center;gap:8px;
     min-height:var(--tap);width:100%;border:2px solid var(--line);background:var(--card);
     border-radius:14px;font-weight:700;font-size:1.05em;padding:10px 12px;
+    text-align:center;line-height:1.15;overflow-wrap:anywhere;
   }
   .btn:active{transform:scale(.985)}
   .btn.sel{border-color:var(--blue);background:var(--blue);color:#fff}
@@ -135,7 +137,9 @@
     font-size:2.2em;font-weight:800;text-align:center;padding:0 6px;-moz-appearance:textfield}
   .bigin:focus{border-color:var(--blue);outline:none}
   .bigin::-webkit-outer-spin-button,.bigin::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-  .bigu{text-align:center;font-size:.8em;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px}
+  .bigu{text-align:center;font-size:.6em;font-weight:700;color:var(--ink2);text-transform:uppercase;
+    letter-spacing:.05em;margin-bottom:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.xl .bigu{font-size:.52em}
   .stepper{display:grid;grid-template-columns:var(--tap) 1fr var(--tap);gap:10px;align-items:center;margin-bottom:10px}
   .stepper button{min-height:var(--tap);border:2px solid var(--line);background:var(--card);border-radius:14px;font-size:1.8em;font-weight:800}
   .chips{display:flex;flex-wrap:wrap;gap:8px}
@@ -968,9 +972,9 @@ function formLong(ins,num,autoTee){
       '<div class="stepper"><button id="mm">−</button>'+
         '<input class="bigin" id="dv" type="number" inputmode="numeric" step="1" min="1" placeholder="—" value="'+(st.dist||"")+'">'+
         '<button id="pp">+</button></div>'+
-      '<div class="bigu">mètres — valeur du télémètre</div>'+
+      '<div class="bigu">valeur du télémètre (m)</div>'+
       '<div id="intBox" class="'+(needIntent()?"":"hidden")+'" style="margin-bottom:14px">'+
-        '<p class="label">Intention</p><div class="chips one" id="cint"></div></div>'+
+        '<p class="label">Intention</p><div class="rowscroll" id="cint" style="margin-bottom:4px"></div></div>'+
       (num===1&&dist(cur)?'<div class="chips" id="quick" style="margin-bottom:10px"></div>':'')+
       '<button class="btn primary" id="ok" style="margin-top:8px">'+(tee1?'Enregistrer le départ':'Enregistrer le coup')+'</button>'+
       (tee1?'<button class="btn small" id="pen" style="margin-top:10px">Ajouter une pénalité (+1)</button>':'')+
