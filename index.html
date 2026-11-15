@@ -78,6 +78,21 @@
     -webkit-mask-image:linear-gradient(90deg,#000 0,#000 94%,transparent 100%);
             mask-image:linear-gradient(90deg,#000 0,#000 94%,transparent 100%)}
   .rowscroll::-webkit-scrollbar{display:none}
+  /* molette : une règle graduée qui défile sous le pouce, le trait central marque la valeur */
+  .wheel{position:relative;margin:4px 0 10px}
+  .wheel .track{display:flex;flex-wrap:nowrap;gap:0;overflow-x:auto;touch-action:pan-x;
+    overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scrollbar-width:none;
+    padding:6px 50%;-webkit-overflow-scrolling:touch}
+  .wheel .track::-webkit-scrollbar{display:none}
+  .wheel .track button{flex:0 0 auto;scroll-snap-align:center;width:58px;min-height:62px;
+    border:0;background:transparent;display:flex;flex-direction:column;align-items:center;
+    justify-content:flex-end;gap:5px;color:var(--ink2);font-size:.62em;font-weight:700;padding:0}
+  .wheel .track button i{display:block;width:2px;height:16px;background:var(--line);border-radius:2px}
+  .wheel .track button.big i{height:26px;background:var(--ink2)}
+  .wheel .track button.sel{color:var(--ok)}
+  .wheel .track button.sel i{background:var(--ok);height:30px;width:3px}
+  .wheel .mark{position:absolute;left:50%;top:0;bottom:16px;width:2px;margin-left:-1px;
+    background:var(--ok);opacity:.35;pointer-events:none;border-radius:2px}
   .rowscroll>*{flex:0 0 auto;width:auto;min-width:0;white-space:nowrap;
     min-height:48px;padding:0 13px;font-size:.72em;border-radius:12px}
   html.xl .rowscroll>*{min-height:54px;font-size:.64em}
@@ -1023,31 +1038,48 @@ function formLong(ins,num,autoTee){
   paintHoleBar();
   render(); if(!autoTee) e.scrollIntoView({behavior:"smooth",block:"start"});
 }
+function puttScale(){
+  var a=[],v;
+  for(v=0.25; v<=6.001; v+=0.25) a.push(Math.round(v*100)/100);
+  for(v=6.5;  v<=12.001; v+=0.5) a.push(Math.round(v*100)/100);
+  for(v=13;   v<=25.001; v+=1)   a.push(v);
+  return a;
+}
 function formPutt(ins,prefill){
-  var st={dist:prefill||3,res:null,rest:0.5,brk:null,amt:null,slope:null,read:null,exec:[]};
+  var st={dist:prefill||null,res:null,rest:0.5,brk:null,amt:null,slope:null,read:null,exec:[]};
   var e=$("entry");
   function sync(){
     var el=$("dv"); if(!el) return;
-    var v=parseFloat(String(el.value).replace(",",".")); if(v>0) st.dist=v;
+    var v=parseFloat(String(el.value).replace(",","."));
+    st.dist=(v>0)?v:null;
   }
   function renderDist(){
     e.innerHTML='<p class="label">1 · Longueur du putt</p>'+
       '<div class="stepper"><button id="mm">−</button>'+
-        '<input class="bigin" id="dv" type="number" inputmode="decimal" step="0.25" min="0.25" value="'+st.dist+'">'+
+        '<input class="bigin" id="dv" type="number" inputmode="decimal" step="0.25" min="0.25" placeholder="—" value="'+(st.dist||"")+'">'+
         '<button id="pp">+</button></div>'+
       '<div class="bigu">mètres</div>'+
-      '<div class="chips one" id="quick"></div>'+
+      '<div class="wheel"><div class="track" id="quick"></div><span class="mark"></span></div>'+
       (prefill?'<p class="muted" style="text-align:center;margin:8px 0 0">Distance restante du putt précédent</p>':'')+
       '<button class="btn primary" id="next" style="margin-top:12px">Résultat du putt</button>'+
       '<button class="btn ghost" id="ca">Annuler</button>';
-    var q=$("quick");
-    [1,2,3,5,10].forEach(function(v){
-      var b=document.createElement("button"); b.className="chip"+(st.dist===v?" sel":""); b.textContent=fmt(v)+" m";
-      b.onclick=function(){ st.dist=v; renderDist(); }; q.appendChild(b);
+    var q=$("quick"), vals=puttScale(), sel=null;
+    vals.forEach(function(v){
+      var b=document.createElement("button");
+      var rond=(Math.abs(v-Math.round(v))<0.01);                  // graduation haute sur les mètres entiers
+      b.className=(rond?"big":"")+(st.dist===v?" sel":"");
+      b.innerHTML='<span>'+(rond||st.dist===v?fmt(v):"")+'</span><i></i>';
+      b.onclick=function(){ st.dist=v; renderDist(); };
+      if(st.dist===v) sel=b;
+      q.appendChild(b);
     });
-    $("mm").onclick=function(){ sync(); st.dist=Math.max(0.25,Math.round((st.dist-0.5)*4)/4); $("dv").value=st.dist; };
-    $("pp").onclick=function(){ sync(); st.dist=Math.round((st.dist+0.5)*4)/4; $("dv").value=st.dist; };
-    $("next").onclick=function(){ sync(); renderRes(); };
+    if(sel) sel.scrollIntoView({block:"nearest",inline:"center"});
+    else q.scrollLeft=0;
+    $("mm").onclick=function(){ sync(); st.dist=st.dist?Math.max(0.25,Math.round((st.dist-0.25)*4)/4):1; renderDist(); };
+    $("pp").onclick=function(){ sync(); st.dist=st.dist?Math.round((st.dist+0.25)*4)/4:1; renderDist(); };
+    $("next").onclick=function(){ sync();
+      if(!st.dist){ toast("Longueur du putt manquante"); $("dv").focus(); return; }
+      renderRes(); };
     $("ca").onclick=function(){ draft=null; formOpen=false; paintEntry(); paintHoleBar(); };
   }
   function renderRes(){
