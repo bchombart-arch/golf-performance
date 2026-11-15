@@ -305,10 +305,9 @@
   .miss-bar{height:8px;border-radius:6px;background:var(--line);overflow:hidden}
   .miss-bar i{display:block;height:100%;border-radius:inherit}
   .putt-shot-list>summary{cursor:pointer;padding:8px 0}
-  .stats-dates{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-  .stats-dates label{display:grid;min-width:0;gap:5px}
-  .stats-dates input{min-width:0;font-size:.85em}
-  @media(max-width:360px){.stats-dates{grid-template-columns:1fr}}
+  /* « Du » et sa date sur la même ligne, comme les critères du putt */
+  .dateline{min-height:44px;font-size:.72em;padding:0 10px;margin:4px 0}
+  html.xl .dateline{min-height:48px;font-size:.62em}
   .drill-form,.drill-form>label,.drill-form>div>label{display:grid;gap:8px;margin:8px 0}
   .drill-form fieldset label{display:block;padding:6px 0}
   .putting-session-list .btn{margin-top:8px}
@@ -1667,14 +1666,16 @@ function paintStats(){
     return {round:round,totals:totals(round),metrics:roundSG(round)};
   });
   var today=localRoundDate();
-  $("vStats").innerHTML='<div class="card"><div class="grid g2" role="group" aria-label="Secteurs">'+
+  $("vStats").innerHTML='<div class="card" style="padding:8px 10px"><div class="rowscroll" style="margin-bottom:0" role="group" aria-label="Secteurs">'+
     labels.map(function(label,i){
       return '<button type="button" class="btn small" id="statsSector'+i+'">'+label+'</button>';
     }).join("")+'</div></div>'+
-    '<div class="card"><p class="label">Période</p><div class="stats-dates">'+
-    '<label for="statsFrom">Du<input class="txt" type="date" id="statsFrom" value="'+today+'"></label>'+
-    '<label for="statsTo">Au<input class="txt" type="date" id="statsTo" value="'+today+'"></label>'+
-    '</div></div>'+
+    '<div class="card"><p class="label">Période</p>'+
+    '<div class="critrow"><span class="k">Du</span>'+
+      '<input class="txt dateline" type="date" id="statsFrom" value="'+today+'"></div>'+
+    '<div class="critrow"><span class="k">Au</span>'+
+      '<input class="txt dateline" type="date" id="statsTo" value="'+today+'"></div>'+
+    '</div>'+
     '<div id="statsProgress"></div>';
   function render(){
     labels.forEach(function(label,i){
