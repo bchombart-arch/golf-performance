@@ -2652,9 +2652,11 @@ function inputNumber(label,id,value,min,max,step){
   return '<label>'+label+'<input class="txt" type="number" id="'+id+'" value="'+value+
     '" min="'+min+'" max="'+max+'" step="'+step+'" required></label>';
 }
-function choicePutting(label,id,values){
+function choicePutting(label,id,values,defaut){
   return '<label>'+label+'<select class="txt" id="'+id+'">'+
-    values.map(function(value){return '<option>'+value+'</option>';}).join("")+'</select></label>';
+    values.map(function(value){
+      return '<option'+(defaut!=null&&value===defaut?' selected':'')+'>'+value+'</option>';
+    }).join("")+'</select></label>';
 }
 function challengePlan(id,level,mode){
   var distances=[], zones=[];
@@ -2698,9 +2700,9 @@ function paintPuttingProtocol(id){
     choicePutting("Mode","drillMode",id===22?["1 balle","2 balles","3 balles"]:id===23?["Ordre imposé","Ordre varié"]:["Basics","Variable","Ordre varié"]):
     ([0,8,10].includes(id)?"":id===11||id===20?choicePutting("Nombre de balles","drillVolume",["10","15","20"]):
       inputNumber("Nombre d’essais","drillVolume",last?last.volume:(kind==="gate"?20:9),1,100,1))+
-    (id===9?inputNumber("Distance de départ (m)","drillDistance",last?last.distance:3,.25,50,.01):
-      ["gate","read","chart","aim"].includes(kind)?inputNumber(kind==="gate"?"Longueur du putt (m)":"Distance de départ (m)","drillDistance",last?last.distance:(kind==="gate"?1.5:3),.25,50,.01):"")+
-    (id===13?choicePutting("Tolérance de la porte","drillGate",["1°","0,5°","0,75°","1,5°","2°"])+
+    (id===9?inputNumber("Longueur du putt (m)","drillDistance",last?last.distance:3,.25,50,.01):
+      ["gate","read","chart","aim"].includes(kind)?inputNumber("Longueur du putt (m)","drillDistance",last?last.distance:(kind==="gate"?1.5:3),.25,50,.01):"")+
+    (id===13?choicePutting("Tolérance de la porte","drillGate",["2°","1,5°","1°","0,75°","0,5°"],"1°")+
       '<div class="card" id="gateCalc" style="margin:10px 0;padding:12px"></div>':"");
   trainingView(f[1],f[0],'<div class="card"><p><b>'+f[2]+'</b></p><p>'+f[3]+'</p><ol>'+
     f[4].split("|").map(function(step){return '<li>'+step+'</li>';}).join("")+
