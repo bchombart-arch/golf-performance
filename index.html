@@ -78,6 +78,20 @@
     -webkit-mask-image:linear-gradient(90deg,#000 0,#000 94%,transparent 100%);
             mask-image:linear-gradient(90deg,#000 0,#000 94%,transparent 100%)}
   .rowscroll::-webkit-scrollbar{display:none}
+  /* niveau à bulle */
+  .lvl{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+  .lvl-dial{position:relative;width:132px;height:132px;flex:0 0 auto;border-radius:50%;
+    border:2px solid var(--line);background:var(--bg);overflow:hidden}
+  .lvl-dial i{position:absolute;left:50%;top:50%;width:1px;height:100%;margin-left:-.5px;background:var(--line)}
+  .lvl-dial i.h{width:100%;height:1px;left:0;top:50%;margin:-.5px 0 0}
+  .lvl-dial .ring{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;
+    border:1px dashed var(--line);border-radius:50%}
+  .lvl-dial .bub{position:absolute;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;
+    background:var(--ok);box-shadow:0 2px 6px rgba(0,0,0,.25);transition:left .08s linear,top .08s linear}
+  .lvl-dial .arw{position:absolute;left:50%;top:50%;font-size:22px;line-height:1;margin:-11px 0 0 -11px;
+    color:var(--ink2);transform-origin:50% 50%}
+  .lvl-read{flex:1 1 150px;min-width:0}
+  .lvl-read b{font-size:2em;line-height:1.1;display:block}
   .xscroll{overflow-x:auto;touch-action:pan-x;overscroll-behavior-x:contain;scrollbar-width:none;
     -webkit-mask-image:linear-gradient(90deg,#000 0,#000 95%,transparent 100%);
             mask-image:linear-gradient(90deg,#000 0,#000 95%,transparent 100%)}
@@ -670,6 +684,73 @@ function show(v){
   var sc=$("scroll"); if(sc) sc.scrollTop=0;
 }
 
+/* ---------- NIVEAU À BULLE ---------- */
+var lvl={on:false,bound:false,b:0,g:0,zb:0,zg:0,flip:false,hold:false,last:0};
+function lvlPente(){                    // pente totale en degrés, à partir des deux inclinaisons
+  var b=(lvl.b-lvl.zb)*Math.PI/180, g=(lvl.g-lvl.zg)*Math.PI/180;
+  var cos=Math.cos(b)*Math.cos(g);
+  return Math.acos(Math.max(-1,Math.min(1,cos)))*180/Math.PI;
+}
+function lvlSens(){                     // cap de la ligne de plus grande pente, 0 = vers le haut de l'écran
+  var b=lvl.b-lvl.zb, g=lvl.g-lvl.zg, k=lvl.flip?-1:1;
+  return Math.atan2(k*g,k*b)*180/Math.PI;
+}
+function lvlPaint(){
+  var box=$("lvlOut"); if(!box||lvl.hold) return;
+  var deg=lvlPente(), pct=Math.tan(deg*Math.PI/180)*100, cap=lvlSens();
+  var b=(lvl.b-lvl.zb), g=(lvl.g-lvl.zg), k=lvl.flip?-1:1, max=6;   // 6° = bord du cadran
+  var x=Math.max(-1,Math.min(1,k*g/max)), y=Math.max(-1,Math.min(1,k*b/max));
+  var bub=$("lvlBub"); if(bub){ bub.style.left=(50+x*42)+"%"; bub.style.top=(50+y*42)+"%"; }
+  var arw=$("lvlArw"); if(arw) arw.style.transform="rotate("+(cap+180)+"deg)";
+  box.innerHTML='<b>'+fmt(Math.round(pct*10)/10)+' %</b>'+
+    '<span class="muted">'+fmt(Math.round(deg*100)/100)+'° · '+lvlMot(cap)+'</span>';
+}
+function lvlMot(cap){
+  var c=((cap+180)%360+360)%360;        // sens de la chute
+  var noms=["vers le haut de l’écran","vers le haut à droite","vers la droite","vers le bas à droite",
+            "vers le bas de l’écran","vers le bas à gauche","vers la gauche","vers le haut à gauche"];
+  return noms[Math.round(c/45)%8];
+}
+function lvlStart(){
+  var go=function(){
+    lvl.on=true;
+    if(!lvl.bound){
+      window.addEventListener("deviceorientation",function(e){
+        if(e.beta==null&&e.gamma==null) return;
+        lvl.b=e.beta||0; lvl.g=e.gamma||0;
+        var t=Date.now(); if(t-lvl.last<90) return; lvl.last=t;   // on calme l'affichage
+        lvlPaint();
+      });
+      lvl.bound=true;
+    }
+    paintAim();
+  };
+  try{
+    if(typeof DeviceOrientationEvent!=="undefined" && typeof DeviceOrientationEvent.requestPermission==="function"){
+      DeviceOrientationEvent.requestPermission().then(function(r){
+        if(r==="granted") go(); else toast("Accès aux capteurs refusé");
+      }).catch(function(){ toast("Capteurs indisponibles"); });
+    } else if(typeof DeviceOrientationEvent!=="undefined"){ go(); }
+    else toast("Ce navigateur n’expose pas les capteurs");
+  }catch(e){ toast("Capteurs indisponibles"); }
+}
+function lvlHTML(){
+  if(!lvl.on) return '<div class="card"><p class="label">Niveau</p>'+
+    '<p class="muted">Mesure la pente du green avec les capteurs du téléphone. Pose l’appareil à plat, écran vers le ciel.</p>'+
+    '<button class="btn primary" id="lvlGo" style="margin-top:10px">Activer le niveau</button></div>';
+  return '<div class="card"><p class="label">Niveau</p>'+
+    '<div class="lvl"><div class="lvl-dial"><i></i><i class="h"></i><span class="ring"></span>'+
+      '<span class="arw" id="lvlArw">▲</span><span class="bub" id="lvlBub" style="left:50%;top:50%"></span></div>'+
+      '<div class="lvl-read" id="lvlOut"><b>—</b><span class="muted">pose le téléphone à plat</span></div></div>'+
+    '<div class="rowscroll" style="margin-top:12px">'+
+      '<button class="btn small" id="lvlZero">Mettre à zéro</button>'+
+      '<button class="btn small" id="lvlFlip">Inverser le sens</button>'+
+      '<button class="btn small" id="lvlHold">'+(lvl.hold?"Reprendre":"Figer")+'</button>'+
+    '</div>'+
+    '<p class="muted" style="margin-top:10px">La flèche montre où la bille descend. Vérifie-la une fois sur une pente évidente : si elle pointe à l’envers, utilise « Inverser le sens ». '+
+    '« Mettre à zéro » se fait sur une surface que tu sais plate, pour annuler le défaut du capteur.</p>'+
+    '<p class="muted" style="margin-top:8px"><b>En partie, c’est interdit.</b> La Règle 4.3a n’autorise aucun instrument de mesure de pente pendant un tour. À l’entraînement uniquement.</p></div>';
+}
 /* ---------- VISÉE : convertir des degrés en centimètres au trou ---------- */
 var BALLE=4.267, TROU=10.8;          // cm
 var aimUnit="cm";
@@ -690,7 +771,7 @@ function paintAim(){
       return '<td>'+fmt(x.cm)+' cm</td>';
     }).join("")+'</tr>';
   }).join("");
-  $("vAim").innerHTML=
+  $("vAim").innerHTML=lvlHTML()+
     '<div class="card"><p class="label">La règle</p>'+
       '<p><b>1° = 1,75 cm par mètre.</b> Tout le reste en découle.</p>'+
       '<p class="muted">Une balle fait 4,27 cm, le trou 10,8 cm — deux balles et demie. '+
@@ -706,6 +787,11 @@ function paintAim(){
       '<tbody>'+portes+'</tbody></table></div>'+
       '<p class="muted" style="margin-top:10px">Distance entre la balle et la porte, pour la largeur dont tu disposes. '+
       'Largeur mesurée entre les bords intérieurs.</p></div>';
+  if($("lvlGo")) $("lvlGo").onclick=lvlStart;
+  if($("lvlZero")) $("lvlZero").onclick=function(){ lvl.zb=lvl.b; lvl.zg=lvl.g; lvl.hold=false; lvlPaint(); };
+  if($("lvlFlip")) $("lvlFlip").onclick=function(){ lvl.flip=!lvl.flip; lvlPaint(); };
+  if($("lvlHold")) $("lvlHold").onclick=function(){ lvl.hold=!lvl.hold; paintAim(); };
+  if(lvl.on) lvlPaint();
   var u=$("aimUnits");
   ["cm","balles"].forEach(function(x){
     var b=document.createElement("button");
