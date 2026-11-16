@@ -95,6 +95,8 @@
   .aimbox{margin-top:12px;padding:12px 14px;border-radius:14px;background:var(--okbg);border:2px solid var(--ok)}
   .aimbox b{display:block;font-size:1.45em;line-height:1.15;color:var(--ok)}
   html.xl .aimbox b{font-size:1.2em}
+  .aimbox span b{display:inline;font-size:1em;color:var(--ink)}
+  html.xl .aimbox span b{font-size:1em}
   .aimbox span{display:block;color:var(--ink2);font-size:.82em;margin-top:3px;line-height:1.25}
   .aimbox.flat{background:#f4f6f8;border-color:var(--line)}
   .aimbox.flat b{color:var(--ink);font-size:1.15em}
@@ -818,10 +820,19 @@ function aimPaint(){
       'le point de visée n’a plus de sens, c’est la vitesse qu’il faut jouer avant la ligne</span>';
     return;
   }
+  var cote=latDeg>0?"à droite":"à gauche", bordNom=latDeg>0?"droit":"gauche";
+  /* les golfeurs comptent en trous à l'extérieur du BORD, pas depuis le centre */
+  var bord=(cm-TROU/2)/TROU;
+  var hors = cm<=TROU/2
+    ? 'le point de visée tombe encore dans le trou, côté '+bordNom
+    : fmt(Math.round(bord*10)/10)+(bord<2?' trou':' trous')+' à l’extérieur du bord '+bordNom;
+  /* même ligne de départ : un repère près de la balle est plus facile à juger */
+  var dRep = L>=2 ? 1 : 0.5;
   box.className="aimbox";
-  box.innerHTML='<b>Viser '+Math.round(cm)+' cm '+(latDeg>0?"à droite":"à gauche")+'</b>'+
-    '<span>'+(function(t){ return fmt(t)+(t<=1?' trou':' trous'); })(Math.round(cm/TROU*10)/10)+' · '+
-      fmt(Math.round(Math.atan(cm/100/L)*180/Math.PI*100)/100)+'° · '+
+  box.innerHTML='<b>Viser '+Math.round(cm)+' cm '+cote+'</b>'+
+    '<span>mesuré <b>depuis le centre du trou</b>, perpendiculairement à la ligne — soit '+hors+'</span>'+
+    '<span>sur un repère à '+fmt(dRep)+' m devant la balle : '+fmt(Math.round(cm*dRep/L*10)/10)+' cm '+cote+'</span>'+
+    '<span>'+fmt(Math.round(Math.atan(cm/100/L)*180/Math.PI*100)/100)+'° · '+
       'putt de '+fmt(L)+' m · stimp '+fmt(st)+' · bille qui meurt 40 cm derrière</span>';
 }
 function greenHTML(){
