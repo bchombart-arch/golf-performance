@@ -772,16 +772,16 @@ function lvlHTML(){
     '<div class="aimbox flat" id="aimOut"><b>—</b><span>pose le téléphone à plat pour lire la pente</span></div>'+
     '<p class="muted" style="margin-top:10px"><b>Pose le téléphone à plat, le haut de l’appareil pointé vers le trou.</b> '+
     'Le chiffre principal est alors la pente latérale, celle qui fait casser le putt ; la ligne du dessous donne la montée ou la descente. '+
-    'La flèche montre où la bille descend. Vérifie-la une fois sur une pente évidente : si elle pointe à l’envers, utilise « Inverser le sens ». '+
+    'La flèche montre où la balle descend. Vérifie-la une fois sur une pente évidente : si elle pointe à l’envers, utilise « Inverser le sens ». '+
     '« Mettre à zéro » se fait sur une surface que tu sais plate, pour annuler le défaut du capteur. '+
     '<b>« Mesurer (3 s) »</b> te laisse le temps de poser l’appareil : la lecture se fige toute seule, tu n’as plus qu’à le reprendre.</p>'+
     '<p class="muted" style="margin-top:8px"><b>En partie, c’est interdit.</b> La Règle 4.3a n’autorise aucun instrument de mesure de pente pendant un tour. À l’entraînement uniquement.</p></div>';
 }
 /* ---------- VITESSE DU GREEN ET POINT DE VISÉE ---------- */
-/* Le stimpmètre lâche la bille à 1,8288 m/s (6,00 ft/s) : la longueur de roulement
+/* Le stimpmètre lâche la balle à 1,8288 m/s (6,00 ft/s) : la longueur de roulement
    donne donc directement la décélération du green. */
-var ROLL=5/7;                        // bille qui roule : l'inertie de rotation freine la dérive
-var AIM_PAST=0.40;                   // la bille doit mourir 40 cm derrière le trou
+var ROLL=5/7;                        // balle qui roule : l'inertie de rotation freine la dérive
+var AIM_PAST=0.40;                   // la balle doit mourir 40 cm derrière le trou
 function greenMu(stimp){ var v=1.8288, S=stimp*0.3048; return (v*v/(2*S))/9.81; }
 function stimpDeMu(mu){ return (1.8288*1.8288/(2*mu*9.81))/0.3048; }
 /* stimp sans stimpmètre : même coup en descente puis en montée sur une pente connue */
@@ -795,7 +795,7 @@ function stimpMontDesc(pente,desc,mont){
    de Pelz : 12 ft, 2° de pente, stimp 10 -> 1,96 ft contre 2,0 ft mesurés. */
 function breakAim(L,lat,lon,stimp){
   var mu=greenMu(stimp)+ROLL*lon;    // lon > 0 = montée, donc décélération plus forte
-  if(mu<=0.006) return null;         // descente trop forte : la bille ne s'arrête plus
+  if(mu<=0.006) return null;         // descente trop forte : la balle ne s'arrête plus
   var D=L+AIM_PAST, z2=Math.min(0.999,AIM_PAST/D);
   var k=0.25+z2*Math.log(Math.sqrt(z2))/2-z2/4;
   return 2*ROLL*Math.abs(lat)*D/mu*k*100;
@@ -816,7 +816,7 @@ function aimPaint(){
   var cm=breakAim(L,lat,lon,st);
   if(cm===null){
     box.className="aimbox warn";
-    box.innerHTML='<b>Descente trop forte</b><span>à cette vitesse de green la bille ne s’arrête plus : '+
+    box.innerHTML='<b>Descente trop forte</b><span>à cette vitesse de green la balle ne s’arrête plus : '+
       'le point de visée n’a plus de sens, c’est la vitesse qu’il faut jouer avant la ligne</span>';
     return;
   }
@@ -833,7 +833,7 @@ function aimPaint(){
     '<span>mesuré <b>depuis le centre du trou</b>, perpendiculairement à la ligne — soit '+hors+'</span>'+
     '<span>sur un repère à '+fmt(dRep)+' m devant la balle : '+fmt(Math.round(cm*dRep/L*10)/10)+' cm '+cote+'</span>'+
     '<span>'+fmt(Math.round(Math.atan(cm/100/L)*180/Math.PI*100)/100)+'° · '+
-      'putt de '+fmt(L)+' m · stimp '+fmt(st)+' · bille qui meurt 40 cm derrière</span>';
+      'putt de '+fmt(L)+' m · stimp '+fmt(st)+' · balle qui meurt 40 cm derrière</span>';
 }
 function greenHTML(){
   return '<div class="card"><p class="label">Vitesse du green</p>'+
