@@ -78,6 +78,12 @@
     -webkit-mask-image:linear-gradient(90deg,#000 0,#000 94%,transparent 100%);
             mask-image:linear-gradient(90deg,#000 0,#000 94%,transparent 100%)}
   .rowscroll::-webkit-scrollbar{display:none}
+  .xscroll{overflow-x:auto;touch-action:pan-x;overscroll-behavior-x:contain;scrollbar-width:none;
+    -webkit-mask-image:linear-gradient(90deg,#000 0,#000 95%,transparent 100%);
+            mask-image:linear-gradient(90deg,#000 0,#000 95%,transparent 100%)}
+  .xscroll::-webkit-scrollbar{display:none}
+  .xscroll table{min-width:420px}
+  .xscroll td,.xscroll th{white-space:nowrap}
   /* un critère par ligne : son nom à gauche, ses options qui défilent à droite */
   .critrow{display:grid;grid-template-columns:82px minmax(0,1fr);align-items:center;
     gap:8px;border-bottom:1px solid var(--line);padding:0}
@@ -238,8 +244,11 @@
   .putt-track span{position:absolute;height:100%;border-radius:4px}
   .putt-detail{padding:0 8px 10px;overflow-wrap:anywhere}
 
-  .main-nav{position:relative;z-index:55;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));padding:3px 4px max(5px,env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--card);flex-shrink:0}
-  .main-nav button{line-height:1.15;font-family:inherit;font-size:12px;font-weight:700;min-height:54px;padding:5px 2px;border:0;border-radius:10px;background:transparent;color:var(--ink2);cursor:pointer}
+  .main-nav{position:relative;z-index:55;display:flex;flex-wrap:nowrap;gap:2px;
+    overflow-x:auto;touch-action:pan-x;overscroll-behavior-x:contain;scrollbar-width:none;
+    padding:3px 4px max(5px,env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--card);flex-shrink:0}
+  .main-nav::-webkit-scrollbar{display:none}
+  .main-nav button{flex:1 0 auto;min-width:64px;line-height:1.15;font-family:inherit;font-size:12px;font-weight:700;min-height:54px;padding:5px 2px;border:0;border-radius:10px;background:transparent;color:var(--ink2);cursor:pointer}
   .main-nav button[aria-current="page"]{background:var(--bg);color:var(--ink);box-shadow:inset 0 -3px var(--ok)}
   .main-nav button:focus-visible{outline:2px solid var(--ok);outline-offset:-3px}
   .main-nav .nav-icon{display:block;width:23px;height:23px;margin:0 auto 4px}
@@ -413,6 +422,7 @@
   <section id="vProfile" class="hidden"></section>
   <section id="vTraining" class="hidden"></section>
   <section id="vStats" class="hidden"></section>
+  <section id="vAim" class="hidden"></section>
   <section id="vBilan" class="hidden"></section>
   <section id="vParcours" class="hidden"></section>
 </div>
@@ -423,6 +433,7 @@
   <button type="button" id="navHome"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="currentColor"><path d="m2.5 10 9.5-7 9.5 7v2l-2-1.5V21h-5v-6h-5v6h-5V10.5l-2 1.5z"/></svg>Home</button>
   <button type="button" id="navCourse"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="currentColor"><path d="M6 3a1 1 0 0 1 1-1h1v1c4.5-2.5 7 2.5 12 0v10c-5 2.5-7.5-2.5-12 0v7h4v2H2v-2h4z"/></svg>Golf Course</button>
   <button type="button" id="navPractice"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="currentColor"><circle cx="14.8" cy="4.4" r="2.25"/><path d="M12.9 7.5 8.9 12.5 8 17l-2 4H3.8m5.1-8.5 3.5 4.2-.4 4.3h2.4M13 7.5l1.6 4.2 2.2 1.6" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"/><path d="m16.8 13.2 1.7 7.6h-2.6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="21.3" cy="20.8" r="1.05"/></svg>Practice</button>
+  <button type="button" id="navAim"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.6" fill="currentColor" stroke="none"/><path d="M12 1.6v3.2M12 19.2v3.2M1.6 12h3.2M19.2 12h3.2" stroke-linecap="round"/></svg>Visée</button>
   <button type="button" id="navStats"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="currentColor"><rect x="3" y="13" width="5" height="8" rx="1.2"/><rect x="9.5" y="8" width="5" height="13" rx="1.2"/><rect x="16" y="3" width="5" height="18" rx="1.2"/></svg>Stats</button>
   <button type="button" id="navProfile"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="currentColor"><circle cx="12" cy="7.1" r="4.1"/><path d="M3.5 20.5v-1.2a6.4 6.4 0 0 1 6.4-6.4h4.2a6.4 6.4 0 0 1 6.4 6.4v1.2z"/></svg>Profile</button>
 </nav>
@@ -648,17 +659,63 @@ function show(v){
     suspendedShot={title:$("hTitle").textContent,subtitle:$("hSub").textContent,scroll:$("scroll").scrollTop};
   }
   currentView=v;
-  ["vCarte","vTrou","vBilan","vParcours","vTraining","vHome","vProfile","vCourseMenu","vStats"].forEach(function(id){
+  ["vCarte","vTrou","vBilan","vParcours","vTraining","vHome","vProfile","vCourseMenu","vStats","vAim"].forEach(function(id){
     $(id).classList.toggle("hidden", id!=="v"+v);
   });
-  var tabs={Home:"Home",Training:"Practice",CourseMenu:"Course",Carte:"Course",Trou:"Course",Parcours:"Course",Bilan:"Course",Stats:"Stats",Profile:"Profile"};
-  ["Home","Practice","Course","Stats","Profile"].forEach(function(tab){
+  var tabs={Home:"Home",Training:"Practice",CourseMenu:"Course",Carte:"Course",Trou:"Course",Parcours:"Course",Bilan:"Course",Stats:"Stats",Aim:"Aim",Profile:"Profile"};
+  ["Home","Practice","Course","Stats","Aim","Profile"].forEach(function(tab){
     $("nav"+tab).setAttribute("aria-current",tabs[v]===tab?"page":"false");
   });
-  $("bar").classList.toggle("hidden",v==="Home"||v==="Profile"||v==="CourseMenu"||v==="Stats");
+  $("bar").classList.toggle("hidden",v==="Home"||v==="Profile"||v==="CourseMenu"||v==="Stats"||v==="Aim");
   var sc=$("scroll"); if(sc) sc.scrollTop=0;
 }
 
+/* ---------- VISÉE : convertir des degrés en centimètres au trou ---------- */
+var BALLE=4.267, TROU=10.8;          // cm
+var aimUnit="cm";
+var AIM_ANGLES=[0.5,0.75,1,1.5,2], AIM_DIST=[1,2,3,4,5,6,8,10,12,15];
+function aimCm(deg,metres){ return metres*100*Math.tan(deg*Math.PI/180); }
+function paintAim(){
+  $("hTitle").textContent="Visée";
+  $("hSub").textContent="degrés convertis en centimètres";
+  var head=AIM_ANGLES.map(function(a){return '<th>'+fmt(a)+'°</th>';}).join("");
+  var lignes=AIM_DIST.map(function(m){
+    return '<tr><td><b>'+m+' m</b></td>'+AIM_ANGLES.map(function(a){
+      var cm=aimCm(a,m);
+      return '<td>'+(aimUnit==="cm"?fmt(Math.round(cm*10)/10)+' cm':fmt(Math.round(cm/BALLE*10)/10)+' b')+'</td>';
+    }).join("")+'</tr>';
+  }).join("");
+  var portes=[2,1.5,1,0.75,0.5].map(function(t){
+    return '<tr><td><b>'+fmt(t)+'°</b></td>'+gatePlacement(t).map(function(x){
+      return '<td>'+fmt(x.cm)+' cm</td>';
+    }).join("")+'</tr>';
+  }).join("");
+  $("vAim").innerHTML=
+    '<div class="card"><p class="label">La règle</p>'+
+      '<p><b>1° = 1,75 cm par mètre.</b> Tout le reste en découle.</p>'+
+      '<p class="muted">Une balle fait 4,27 cm, le trou 10,8 cm — deux balles et demie. '+
+      'À 3 m, 1° revient à viser un bord du trou.</p></div>'+
+    '<div class="card"><p class="label">Écart à viser, au trou</p>'+
+      '<div class="rowscroll" id="aimUnits" style="margin-bottom:10px"></div>'+
+      '<div class="xscroll"><table class="sum"><thead><tr><th>Distance</th>'+head+'</tr></thead>'+
+      '<tbody>'+lignes+'</tbody></table></div>'+
+      '<p class="muted" style="margin-top:10px">Écart mesuré au niveau du trou, perpendiculairement à la ligne. '+
+      'Valable pour une visée en ligne droite : sur un vrai green qui casse, la balle courbe et il faut viser un peu plus.</p></div>'+
+    '<div class="card"><p class="label">Porte d’entraînement</p>'+
+      '<div class="xscroll"><table class="sum"><thead><tr><th>Tolérance</th><th>50 mm</th><th>55 mm</th><th>60 mm</th></tr></thead>'+
+      '<tbody>'+portes+'</tbody></table></div>'+
+      '<p class="muted" style="margin-top:10px">Distance entre la balle et la porte, pour la largeur dont tu disposes. '+
+      'Largeur mesurée entre les bords intérieurs.</p></div>';
+  var u=$("aimUnits");
+  ["cm","balles"].forEach(function(x){
+    var b=document.createElement("button");
+    b.className="chip"+(aimUnit===(x==="cm"?"cm":"b")?" sel":"");
+    b.textContent=x;
+    b.onclick=function(){ aimUnit=(x==="cm"?"cm":"b"); paintAim(); };
+    u.appendChild(b);
+  });
+  show("Aim");
+}
 /* ---------- carte ---------- */
 function courseBarHTML(){
   var c=course(), t=tee();
@@ -3395,7 +3452,7 @@ function resumeCourse(){
   $("scroll").scrollTop=shot.scroll;
 }
 [[ "Home",paintHome],["Practice",paintTraining],["Course",paintCourseMenu],
- ["Stats",paintStats],["Profile",paintProfile]].forEach(function(item){
+ ["Stats",paintStats],["Aim",paintAim],["Profile",paintProfile]].forEach(function(item){
   $("nav"+item[0]).onclick=function(){closeSheet();item[1]();};
 });
 $("btnXl").onclick=function(){
