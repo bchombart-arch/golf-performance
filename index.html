@@ -2672,6 +2672,23 @@ function challengePlan(id,level,mode){
   }
   return {distances:distances,zones:zones};
 }
+/* où poser la porte pour obtenir la tolérance choisie (balle : 42,67 mm) */
+function gatePlacement(deg){
+  return [50,55,60].map(function(w){
+    var d=((w-42.67)/2)/Math.tan(deg*Math.PI/180);      // en mm
+    return {w:w, cm:Math.round(d/10*10)/10, po:Math.round(d/25.4*10)/10};
+  });
+}
+function paintGateCalc(){
+  var box=$("gateCalc"), sel=$("drillGate"); if(!box||!sel) return;
+  var deg=parseFloat(sel.value.replace(",","."));
+  var lignes=gatePlacement(deg).map(function(x){
+    return '<tr><td><b>'+x.w+' mm</b></td><td>'+fmt(x.cm)+' cm</td><td>'+fmt(x.po)+' po</td></tr>';
+  }).join("");
+  box.innerHTML='<p class="label">Porte à installer — tolérance '+sel.value+'</p>'+
+    '<table class="sum"><thead><tr><th>Largeur</th><th>Distance</th><th></th></tr></thead><tbody>'+lignes+'</tbody></table>'+
+    '<p class="muted" style="margin-top:8px">Trois largeurs possibles pour la même exigence : prends celle que tu as, pose-la à la distance en face. Largeur mesurée entre les bords intérieurs, distance depuis la balle.</p>';
+}
 function paintPuttingProtocol(id){
   var f=puttingCatalog[id],kind=puttingKinds[id],challenge=[14,15,22,23].includes(id);
   var previous=puttingLog().find(function(s){return s.id===id;});
@@ -2682,8 +2699,9 @@ function paintPuttingProtocol(id){
     ([0,8,10].includes(id)?"":id===11||id===20?choicePutting("Nombre de balles","drillVolume",["10","15","20"]):
       inputNumber("Nombre d’essais","drillVolume",last?last.volume:(kind==="gate"?20:9),1,100,1))+
     (id===9?inputNumber("Distance de départ (m)","drillDistance",last?last.distance:3,.25,50,.01):
-      ["gate","read","chart","aim"].includes(kind)?inputNumber("Distance de départ (m)","drillDistance",last?last.distance:(kind==="gate"?1.5:3),.25,50,.01):"")+
-    (id===13?choicePutting("Tolérance de la porte","drillGate",["1°","0,5°","0,75°","1,5°","2°"]):"");
+      ["gate","read","chart","aim"].includes(kind)?inputNumber(kind==="gate"?"Longueur du putt (m)":"Distance de départ (m)","drillDistance",last?last.distance:(kind==="gate"?1.5:3),.25,50,.01):"")+
+    (id===13?choicePutting("Tolérance de la porte","drillGate",["1°","0,5°","0,75°","1,5°","2°"])+
+      '<div class="card" id="gateCalc" style="margin:10px 0;padding:12px"></div>':"");
   trainingView(f[1],f[0],'<div class="card"><p><b>'+f[2]+'</b></p><p>'+f[3]+'</p><ol>'+
     f[4].split("|").map(function(step){return '<li>'+step+'</li>';}).join("")+
     '</ol><p>'+f[5]+'</p>'+
@@ -2691,6 +2709,7 @@ function paintPuttingProtocol(id){
     '<form id="puttingSetup" class="drill-form">'+setup+
     '<button class="btn primary" type="submit">Commencer</button></form></div>',
     "Retour au putting",paintPuttingTraining);
+  if($("gateCalc")){ paintGateCalc(); $("drillGate").onchange=paintGateCalc; }
   $("puttingSetup").onsubmit=function(event){
     event.preventDefault();
     if(S.puttingDraft){
