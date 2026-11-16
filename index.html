@@ -702,8 +702,15 @@ function lvlPaint(){
   var x=Math.max(-1,Math.min(1,k*g/max)), y=Math.max(-1,Math.min(1,k*b/max));
   var bub=$("lvlBub"); if(bub){ bub.style.left=(50+x*42)+"%"; bub.style.top=(50+y*42)+"%"; }
   var arw=$("lvlArw"); if(arw) arw.style.transform="rotate("+(cap+180)+"deg)";
-  box.innerHTML='<b>'+fmt(Math.round(pct*10)/10)+' %</b>'+
-    '<span class="muted">'+fmt(Math.round(deg*100)/100)+'° · '+lvlMot(cap)+'</span>';
+  /* haut du téléphone pointé vers le trou : gamma devient la pente latérale, beta la montée */
+  var lat=k*g, lon=k*b;
+  var pc=function(d){ return fmt(Math.round(Math.tan(Math.abs(d)*Math.PI/180)*1000)/10); };
+  box.innerHTML='<b>'+pc(lat)+' %</b>'+
+    '<span class="muted">latéral · '+fmt(Math.round(Math.abs(lat)*100)/100)+'° · '+
+      (Math.abs(lat)<0.15?"plat":(lat>0?"casse vers la gauche":"casse vers la droite"))+'</span>'+
+    '<span class="muted" style="display:block;margin-top:6px">'+
+      (Math.abs(lon)<0.15?"ni montée ni descente":(lon>0?"descente":"montée"))+' · '+pc(lon)+' % · '+fmt(Math.round(Math.abs(lon)*100)/100)+'°</span>'+
+    '<span class="muted" style="display:block">pente totale '+fmt(Math.round(pct*10)/10)+' % · '+lvlMot(cap)+'</span>';
 }
 function lvlMot(cap){
   var c=((cap+180)%360+360)%360;        // sens de la chute
@@ -736,7 +743,7 @@ function lvlStart(){
 }
 function lvlHTML(){
   if(!lvl.on) return '<div class="card"><p class="label">Niveau</p>'+
-    '<p class="muted">Mesure la pente du green avec les capteurs du téléphone. Pose l’appareil à plat, écran vers le ciel.</p>'+
+    '<p class="muted">Mesure la pente du green avec les capteurs du téléphone. Pose l’appareil à plat, écran vers le ciel, le haut pointé vers le trou : l’app sépare alors la pente latérale de la montée.</p>'+
     '<button class="btn primary" id="lvlGo" style="margin-top:10px">Activer le niveau</button></div>';
   return '<div class="card"><p class="label">Niveau</p>'+
     '<div class="lvl"><div class="lvl-dial"><i></i><i class="h"></i><span class="ring"></span>'+
@@ -747,7 +754,9 @@ function lvlHTML(){
       '<button class="btn small" id="lvlFlip">Inverser le sens</button>'+
       '<button class="btn small" id="lvlHold">'+(lvl.hold?"Reprendre":"Figer")+'</button>'+
     '</div>'+
-    '<p class="muted" style="margin-top:10px">La flèche montre où la bille descend. Vérifie-la une fois sur une pente évidente : si elle pointe à l’envers, utilise « Inverser le sens ». '+
+    '<p class="muted" style="margin-top:10px"><b>Pose le téléphone à plat, le haut de l’appareil pointé vers le trou.</b> '+
+    'Le chiffre principal est alors la pente latérale, celle qui fait casser le putt ; la ligne du dessous donne la montée ou la descente. '+
+    'La flèche montre où la bille descend. Vérifie-la une fois sur une pente évidente : si elle pointe à l’envers, utilise « Inverser le sens ». '+
     '« Mettre à zéro » se fait sur une surface que tu sais plate, pour annuler le défaut du capteur.</p>'+
     '<p class="muted" style="margin-top:8px"><b>En partie, c’est interdit.</b> La Règle 4.3a n’autorise aucun instrument de mesure de pente pendant un tour. À l’entraînement uniquement.</p></div>';
 }
