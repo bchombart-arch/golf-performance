@@ -429,10 +429,10 @@
     <div class="card"><div class="tot" id="totBox"></div></div>
     <div class="grid g2">
       <button class="btn small" id="btnBilan">Bilan du tour</button>
-      <button class="btn small danger" id="btnReset">Nouveau tour</button>
+      <button class="btn small" id="btnReset">Nouvelle partie</button>
     </div>
+    <button type="button" class="btn small danger hidden" id="btnDeleteRound" style="margin-top:10px">Supprimer la partie</button>
     <p class="muted" style="text-align:center;margin-top:14px" id="storeState"></p>
-    <button type="button" class="btn small danger hidden" id="btnDeleteRound">Supprimer la partie</button>
   </section>
 
   <section id="vTrou" class="hidden">
@@ -3642,11 +3642,18 @@ function paintCourseMenu(){
   var rounds=roundHistory();
   var actions=active?
     '<div class="card"><p class="label">Partie en cours</p>'+
-      '<p>'+t.v+'/18 trous validés · '+t.c+' coups saisis</p>'+
-      '<button class="btn primary" id="courseResume">Reprendre la partie</button></div>':
+      '<p>'+t.v+'/18 trous validés · '+t.c+(t.c<2?' coup saisi':' coups saisis')+'</p>'+
+      '<button class="btn primary" id="courseResume">Reprendre la partie</button>'+
+      '<div class="grid g2" style="margin-top:10px">'+
+        '<button class="btn small" id="courseNew">Nouvelle partie</button>'+
+        '<button class="btn small danger" id="courseDrop">Supprimer</button>'+
+      '</div>'+
+      '<p class="muted" style="margin-top:10px">« Nouvelle partie » range celle-ci dans l’historique et ouvre une carte vierge. '+
+      '« Supprimer » l’efface définitivement, sans la garder.</p></div>':
     complete&&!saved?'<div class="card"><p class="label">Partie terminée</p>'+
       '<p>'+t.c+' coups · '+signed(t.vp)+' vs par</p>'+
-      '<button class="btn primary" id="courseFinish">Terminer et enregistrer</button></div>':
+      '<button class="btn primary" id="courseFinish">Terminer et enregistrer</button>'+
+      '<button class="btn small danger" id="courseDrop" style="margin-top:10px">Supprimer sans enregistrer</button></div>':
     '<div class="card"><button class="btn primary" id="courseStart">Enregistrer une nouvelle partie</button></div>';
   $("vCourseMenu").innerHTML=actions+'<div class="card"><p class="label">Historique des parties</p>'+
     (rounds.length?rounds.map(function(round,index){
@@ -3660,6 +3667,8 @@ function paintCourseMenu(){
   if(active) $("courseResume").onclick=resumeCourse;
   else if(complete&&!saved) $("courseFinish").onclick=finishRound;
   else $("courseStart").onclick=chooseRoundDate;
+  if($("courseNew")) $("courseNew").onclick=chooseRoundDate;
+  if($("courseDrop")) $("courseDrop").onclick=function(){ askDeleteRound(paintCourseMenu); };
   rounds.forEach(function(round,index){
     $("roundHistory"+index).onclick=function(){paintRoundReport(round);};
   });
@@ -3687,7 +3696,7 @@ $("btnXl").onclick=function(){
 };
 try{ if(localStorage.getItem("gp_xl")==="1"){ document.documentElement.classList.add("xl"); $("btnXl").textContent="A−"; } }catch(e){}
 $("btnBilan").onclick=paintBilan;
-$("btnDeleteRound").onclick=function(){
+function askDeleteRound(after){
   sheet('<h3>Supprimer la partie ?</h3>'+
     '<p>Les coups du tour affiché et sa copie dans l’historique, si elle existe, seront supprimés.</p>'+
     '<button class="btn" id="deleteCancel">Annuler</button>'+
@@ -3704,17 +3713,18 @@ $("btnDeleteRound").onclick=function(){
           S.round=previousRound;
           S.archive=previousArchive;
           closeSheet();
-          $("resume").innerHTML='<div class="warn" role="alert">Suppression indisponible. Réessaie sans fermer la page.</div>';
+          toast("Suppression indisponible. Réessaie sans fermer la page.");
           return;
         }
         suspendedShot=null;
         draft=null;
         formOpen=false;
         closeSheet();
-        paintCarte();
+        (after||paintCarte)();
       };
     });
-};
+}
+$("btnDeleteRound").onclick=function(){ askDeleteRound(paintCarte); };
 function chooseRoundDate(){
   var today=localRoundDate();
   var used=totals().c;
