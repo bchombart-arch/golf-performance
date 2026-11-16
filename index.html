@@ -92,6 +92,13 @@
     color:var(--ink2);transform-origin:50% 50%}
   .lvl-read{flex:1 1 150px;min-width:0}
   .lvl-read b{font-size:2em;line-height:1.1;display:block}
+  .aimbox{margin-top:12px;padding:12px 14px;border-radius:14px;background:var(--okbg);border:2px solid var(--ok)}
+  .aimbox b{display:block;font-size:1.55em;line-height:1.15;color:var(--ok)}
+  .aimbox span{display:block;color:var(--ink2);font-size:.82em;margin-top:3px;line-height:1.25}
+  .aimbox.flat{background:#f4f6f8;border-color:var(--line)}
+  .aimbox.flat b{color:var(--ink);font-size:1.15em}
+  .aimbox.warn{background:var(--todobg);border-color:var(--todo)}
+  .aimbox.warn b{color:var(--todo);font-size:1.15em}
   .xscroll{overflow-x:auto;touch-action:pan-x;overscroll-behavior-x:contain;scrollbar-width:none;
     -webkit-mask-image:linear-gradient(90deg,#000 0,#000 95%,transparent 100%);
             mask-image:linear-gradient(90deg,#000 0,#000 95%,transparent 100%)}
@@ -685,7 +692,7 @@ function show(v){
 }
 
 /* ---------- NIVEAU À BULLE ---------- */
-var lvl={on:false,bound:false,b:0,g:0,zb:0,zg:0,flip:false,hold:false,last:0};
+var lvl={on:false,bound:false,b:0,g:0,zb:0,zg:0,flip:false,hold:false,last:0,lat:null,lon:null};
 function lvlPente(){                    // pente totale en degrés, à partir des deux inclinaisons
   var b=(lvl.b-lvl.zb)*Math.PI/180, g=(lvl.g-lvl.zg)*Math.PI/180;
   var cos=Math.cos(b)*Math.cos(g);
@@ -711,6 +718,8 @@ function lvlPaint(){
     '<span class="muted" style="display:block;margin-top:6px">'+
       (Math.abs(lon)<0.15?"ni montée ni descente":(lon>0?"descente":"montée"))+' · '+pc(lon)+' % · '+fmt(Math.round(Math.abs(lon)*100)/100)+'°</span>'+
     '<span class="muted" style="display:block">pente totale '+fmt(Math.round(pct*10)/10)+' % · '+lvlMot(cap)+'</span>';
+  lvl.lat=lat; lvl.lon=lon;
+  aimPaint();
 }
 function lvlMot(cap){
   var c=((cap+180)%360+360)%360;        // sens de la chute
@@ -753,12 +762,84 @@ function lvlHTML(){
       '<button class="btn small" id="lvlZero">Mettre à zéro</button>'+
       '<button class="btn small" id="lvlFlip">Inverser le sens</button>'+
       '<button class="btn small" id="lvlHold">'+(lvl.hold?"Reprendre":"Figer")+'</button>'+
+      '<button class="btn small" id="lvlDelay">Mesurer (3 s)</button>'+
     '</div>'+
+    '<p class="label" style="margin-top:16px">Longueur du putt</p>'+
+    '<div class="rowscroll" id="aimDists"></div>'+
+    '<div class="aimbox flat" id="aimOut"><b>—</b><span>pose le téléphone à plat pour lire la pente</span></div>'+
     '<p class="muted" style="margin-top:10px"><b>Pose le téléphone à plat, le haut de l’appareil pointé vers le trou.</b> '+
     'Le chiffre principal est alors la pente latérale, celle qui fait casser le putt ; la ligne du dessous donne la montée ou la descente. '+
     'La flèche montre où la bille descend. Vérifie-la une fois sur une pente évidente : si elle pointe à l’envers, utilise « Inverser le sens ». '+
-    '« Mettre à zéro » se fait sur une surface que tu sais plate, pour annuler le défaut du capteur.</p>'+
+    '« Mettre à zéro » se fait sur une surface que tu sais plate, pour annuler le défaut du capteur. '+
+    '<b>« Mesurer (3 s) »</b> te laisse le temps de poser l’appareil : la lecture se fige toute seule, tu n’as plus qu’à le reprendre.</p>'+
     '<p class="muted" style="margin-top:8px"><b>En partie, c’est interdit.</b> La Règle 4.3a n’autorise aucun instrument de mesure de pente pendant un tour. À l’entraînement uniquement.</p></div>';
+}
+/* ---------- VITESSE DU GREEN ET POINT DE VISÉE ---------- */
+/* Le stimpmètre lâche la bille à 1,8288 m/s (6,00 ft/s) : la longueur de roulement
+   donne donc directement la décélération du green. */
+var ROLL=5/7;                        // bille qui roule : l'inertie de rotation freine la dérive
+var AIM_PAST=0.40;                   // la bille doit mourir 40 cm derrière le trou
+function greenMu(stimp){ var v=1.8288, S=stimp*0.3048; return (v*v/(2*S))/9.81; }
+function stimpDeMu(mu){ return (1.8288*1.8288/(2*mu*9.81))/0.3048; }
+/* stimp sans stimpmètre : même coup en descente puis en montée sur une pente connue */
+function stimpMontDesc(pente,desc,mont){
+  if(!(pente>0&&desc>0&&mont>0&&desc>mont)) return null;
+  return stimpDeMu(ROLL*(pente/100)*(desc+mont)/(desc-mont));
+}
+/* Écart à viser, mesuré au trou, perpendiculairement à la ligne.
+   Frottement opposé à la vitesse, gravité réduite de 5/7, premier ordre en pente.
+   Vérifié contre l'intégration numérique (3 à 7 % d'écart) et contre la référence
+   de Pelz : 12 ft, 2° de pente, stimp 10 -> 1,96 ft contre 2,0 ft mesurés. */
+function breakAim(L,lat,lon,stimp){
+  var mu=greenMu(stimp)+ROLL*lon;    // lon > 0 = montée, donc décélération plus forte
+  if(mu<=0.006) return null;         // descente trop forte : la bille ne s'arrête plus
+  var D=L+AIM_PAST, z2=Math.min(0.999,AIM_PAST/D);
+  var k=0.25+z2*Math.log(Math.sqrt(z2))/2-z2/4;
+  return 2*ROLL*Math.abs(lat)*D/mu*k*100;
+}
+var AIM_LONG=[1,1.5,2,2.5,3,4,5,6,8,10,12,15];
+function aimPaint(){
+  var box=$("aimOut"); if(!box) return;
+  if(lvl.lat===null){ box.className="aimbox flat";
+    box.innerHTML='<b>—</b><span>pose le téléphone à plat pour lire la pente</span>'; return; }
+  var latDeg=lvl.lat, lonDeg=lvl.lon, L=S.aimDist||3, st=S.stimp||10;
+  var lat=Math.tan(Math.abs(latDeg)*Math.PI/180);
+  var lon=-Math.tan(lonDeg*Math.PI/180);          // lonDeg > 0 = descente
+  if(Math.abs(latDeg)<0.15){
+    box.className="aimbox flat";
+    box.innerHTML='<b>Droit dans le trou</b><span>pas de pente latérale mesurable · putt de '+fmt(L)+' m</span>';
+    return;
+  }
+  var cm=breakAim(L,lat,lon,st);
+  if(cm===null){
+    box.className="aimbox warn";
+    box.innerHTML='<b>Descente trop forte</b><span>à cette vitesse de green la bille ne s’arrête plus : '+
+      'le point de visée n’a plus de sens, c’est la vitesse qu’il faut jouer avant la ligne</span>';
+    return;
+  }
+  box.className="aimbox";
+  box.innerHTML='<b>Viser '+Math.round(cm)+' cm '+(latDeg>0?"à droite":"à gauche")+'</b>'+
+    '<span>'+(function(t){ return fmt(t)+(t<=1?' trou':' trous'); })(Math.round(cm/TROU*10)/10)+' · '+
+      fmt(Math.round(Math.atan(cm/100/L)*180/Math.PI*100)/100)+'° · '+
+      'putt de '+fmt(L)+' m · stimp '+fmt(st)+' · bille qui meurt 40 cm derrière</span>';
+}
+function greenHTML(){
+  return '<div class="card"><p class="label">Vitesse du green</p>'+
+    '<div class="rowscroll" id="stimpRow"></div>'+
+    '<p class="muted" style="margin-top:10px">Le stimp est la longueur de roulement, en pieds. '+
+    '8 c’est lent, 9 à 10 ordinaire, 11 rapide, 12 et plus compétition. '+
+    'Sur un même green il monte d’environ un point entre le matin et l’après-midi, et après un passage de rouleau.</p>'+
+    '<p class="label" style="margin-top:16px">Le mesurer sans stimpmètre</p>'+
+    '<p class="muted">Sur une pente régulière, joue deux fois le même coup depuis le même point : une fois vers le bas, '+
+    'une fois vers le haut. Mesure les deux roulements et relève la pente au niveau. '+
+    'Trois séries et tu gardes la moyenne — toute la précision tient à la régularité du coup.</p>'+
+    '<div class="ed" style="margin-top:10px">'+
+      '<div class="critrow"><span class="k">Pente %</span><input id="cPente" type="number" step="0.1" inputmode="decimal"></div>'+
+      '<div class="critrow"><span class="k">Descente m</span><input id="cDesc" type="number" step="0.1" inputmode="decimal"></div>'+
+      '<div class="critrow"><span class="k">Montée m</span><input id="cMont" type="number" step="0.1" inputmode="decimal"></div>'+
+    '</div>'+
+    '<button class="btn small" id="cGo" style="margin-top:12px">Calculer le stimp</button>'+
+    '<p class="muted" id="cOut" style="margin-top:8px"></p></div>';
 }
 /* ---------- VISÉE : convertir des degrés en centimètres au trou ---------- */
 var BALLE=4.267, TROU=10.8;          // cm
@@ -780,7 +861,7 @@ function paintAim(){
       return '<td>'+fmt(x.cm)+' cm</td>';
     }).join("")+'</tr>';
   }).join("");
-  $("vAim").innerHTML=lvlHTML()+
+  $("vAim").innerHTML=lvlHTML()+greenHTML()+
     '<div class="card"><p class="label">La règle</p>'+
       '<p><b>1° = 1,75 cm par mètre.</b> Tout le reste en découle.</p>'+
       '<p class="muted">Une balle fait 4,27 cm, le trou 10,8 cm — deux balles et demie. '+
@@ -800,7 +881,44 @@ function paintAim(){
   if($("lvlZero")) $("lvlZero").onclick=function(){ lvl.zb=lvl.b; lvl.zg=lvl.g; lvl.hold=false; lvlPaint(); };
   if($("lvlFlip")) $("lvlFlip").onclick=function(){ lvl.flip=!lvl.flip; lvlPaint(); };
   if($("lvlHold")) $("lvlHold").onclick=function(){ lvl.hold=!lvl.hold; paintAim(); };
-  if(lvl.on) lvlPaint();
+  if($("lvlDelay")) $("lvlDelay").onclick=function(){
+    var b=this, n=3;
+    lvl.hold=false; b.disabled=true;
+    var tic=setInterval(function(){
+      n--; b.textContent=n>0?("Mesure dans "+n+" s"):"Mesuré";
+      if(n<=0){ clearInterval(tic); lvl.hold=true; paintAim(); }
+    },1000);
+    b.textContent="Mesure dans 3 s";
+  };
+  var dr=$("aimDists");
+  if(dr) AIM_LONG.forEach(function(m){
+    var b=document.createElement("button");
+    b.className="chip"+((S.aimDist||3)===m?" sel":"");
+    b.textContent=fmt(m)+" m";
+    b.onclick=function(){ S.aimDist=m; save(); paintAim(); };
+    dr.appendChild(b);
+  });
+  var sr=$("stimpRow");
+  if(sr) [8,8.5,9,9.5,10,10.5,11,11.5,12,12.5,13].forEach(function(x){
+    var b=document.createElement("button");
+    b.className="chip"+((S.stimp||10)===x?" sel":"");
+    b.textContent=fmt(x);
+    b.onclick=function(){ S.stimp=x; save(); paintAim(); };
+    sr.appendChild(b);
+  });
+  if($("cGo")) $("cGo").onclick=function(){
+    var v=function(id){ return parseFloat(($(id).value||"").replace(",",".")); };
+    var st=stimpMontDesc(v("cPente"),v("cDesc"),v("cMont"));
+    if(st===null||!isFinite(st)){
+      $("cOut").textContent="Il faut les trois valeurs, et un roulement en descente plus long qu’en montée.";
+      return;
+    }
+    st=Math.round(st*10)/10;
+    $("cOut").innerHTML="Stimp mesuré : <b>"+fmt(st)+"</b>"+
+      (st<6||st>15?" — hors des valeurs plausibles, vérifie les mesures."
+                 :". Touche la valeur la plus proche au-dessus pour l’utiliser.");
+  };
+  if(lvl.on){ if(lvl.hold) aimPaint(); else lvlPaint(); }
   var u=$("aimUnits");
   ["cm","balles"].forEach(function(x){
     var b=document.createElement("button");
